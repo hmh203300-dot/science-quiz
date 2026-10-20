@@ -2,14 +2,29 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>2022 개정 통합과학2 - 생물과 환경 & 생태계평형 실전 테스트</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
-    body { font-family: 'Pretendard', sans-serif; background-color: #f8fafc; }
+    body { font-family: 'Pretendard', sans-serif; background-color: #f8fafc; position: relative; }
     .choice-btn { transition: all 0.15s ease-in-out; }
     .choice-btn:hover:not(:disabled) { transform: translateY(-1px); }
+    
+    /* 문서 전체를 덮는 스크롤 연동 필기 캔버스 */
+    #draw-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 40;
+      pointer-events: none; /* 필기 꺼짐 상태에서는 아래 버튼 클릭 가능 */
+    }
+    #draw-canvas.drawing-active {
+      pointer-events: auto; /* 필기 켜짐 상태에서는 캔버스에 그림 그려짐 */
+      touch-action: none;   /* 모바일에서 필기 중 화면 스크롤 방지 */
+      cursor: crosshair;
+    }
+
     @media print {
       .no-print { display: none !important; }
       body { background-color: white; }
@@ -17,10 +32,13 @@
     }
   </style>
 </head>
-<body class="text-slate-800 pb-20">
+<body class="text-slate-800 pb-28">
+
+  <!-- 투명 필기 캔버스 레이어 -->
+  <canvas id="draw-canvas" class="no-print"></canvas>
 
   <!-- 상단 헤더 -->
-  <header class="bg-indigo-900 text-white shadow-md sticky top-0 z-30 no-print">
+  <header class="bg-indigo-900 text-white shadow-md sticky top-0 z-50 no-print">
     <div class="max-w-4xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-3">
       <div>
         <span class="text-xs font-semibold bg-indigo-700 px-2.5 py-1 rounded-full uppercase tracking-wider">2022 개정 통합과학2</span>
@@ -43,10 +61,10 @@
     <!-- 컨트롤 & 카테고리 필터 탭 -->
     <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 mb-6 flex flex-wrap justify-between items-center gap-3 no-print">
       <div class="flex flex-wrap gap-2" id="filter-tabs">
-        <button onclick="filterQuestions('all')" class="filter-btn active px-3 py-1.5 rounded-lg text-sm font-semibold bg-slate-800 text-white">전체 (20)</button>
-        <button onclick="filterQuestions('basic')" class="filter-btn px-3 py-1.5 rounded-lg text-sm font-medium bg-slate-100 text-slate-600 hover:bg-slate-200">기본 개념형 (10)</button>
-        <button onclick="filterQuestions('applied')" class="filter-btn px-3 py-1.5 rounded-lg text-sm font-medium bg-slate-100 text-slate-600 hover:bg-slate-200">응용·함정형 (5)</button>
-        <button onclick="filterQuestions('data')" class="filter-btn px-3 py-1.5 rounded-lg text-sm font-medium bg-slate-100 text-slate-600 hover:bg-slate-200">자료해석형 (5)</button>
+        <button onclick="filterQuestions('all', event)" class="filter-btn active px-3 py-1.5 rounded-lg text-sm font-semibold bg-slate-800 text-white">전체 (20)</button>
+        <button onclick="filterQuestions('basic', event)" class="filter-btn px-3 py-1.5 rounded-lg text-sm font-medium bg-slate-100 text-slate-600 hover:bg-slate-200">기본 개념형 (10)</button>
+        <button onclick="filterQuestions('applied', event)" class="filter-btn px-3 py-1.5 rounded-lg text-sm font-medium bg-slate-100 text-slate-600 hover:bg-slate-200">응용·함정형 (5)</button>
+        <button onclick="filterQuestions('data', event)" class="filter-btn px-3 py-1.5 rounded-lg text-sm font-medium bg-slate-100 text-slate-600 hover:bg-slate-200">자료해석형 (5)</button>
       </div>
       <div class="text-sm font-medium text-slate-600">
         응답 완료: <span id="answered-count" class="text-indigo-600 font-bold">0</span> / 20
@@ -97,6 +115,32 @@
     </div>
 
   </main>
+
+  <!-- ✏️ 모바일/PC 하단 플로팅 필기 & 지우개 툴바 -->
+  <div class="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-slate-900/95 backdrop-blur-md text-white px-3.5 py-2 rounded-full shadow-2xl flex items-center gap-2 border border-slate-700 text-xs sm:text-sm whitespace-nowrap no-print">
+    <button id="btn-draw-toggle" onclick="toggleDrawMode()" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-slate-800 hover:bg-slate-700 font-bold transition">
+      <span>✏️</span> <span id="pen-text">필기 켜기</span>
+    </button>
+    
+    <div id="draw-tools" class="hidden flex items-center gap-2 pl-2 border-l border-slate-700">
+      <!-- 펜 색상 선택 -->
+      <button onclick="selectPen('#ef4444')" id="pen-red" class="w-6 h-6 rounded-full bg-red-500 border-2 border-white ring-2 ring-red-400 transition" title="빨간펜"></button>
+      <button onclick="selectPen('#2563eb')" id="pen-blue" class="w-6 h-6 rounded-full bg-blue-600 border-2 border-transparent hover:scale-110 transition" title="파란펜"></button>
+      <button onclick="selectPen('#1e293b')" id="pen-black" class="w-6 h-6 rounded-full bg-slate-800 border-2 border-slate-400 hover:scale-110 transition" title="검은펜"></button>
+      
+      <div class="h-4 w-px bg-slate-700 mx-0.5"></div>
+
+      <!-- 부분 지우개 -->
+      <button onclick="selectEraser()" id="btn-eraser" class="px-2.5 py-1 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold flex items-center gap-1 transition">
+        <span>🧽</span> 지우개
+      </button>
+
+      <!-- 전체 지우기 -->
+      <button onclick="clearCanvas()" class="px-2.5 py-1 rounded-full bg-rose-900/70 hover:bg-rose-700 text-rose-200 font-semibold transition">
+        전체 삭제
+      </button>
+    </div>
+  </div>
 
   <script>
     const quizData = [
@@ -461,7 +505,7 @@
         question: '다음은 어떤 초원 생태계에서 1905년 사슴을 보호하기 위해 늑대 사냥을 허가한 이후 약 30년간의 변화를 기록한 자료이다. 이에 대한 해석으로 옳은 것만을 <보기>에서 있는 대로 고른 것은?',
         box: `<ul class="list-disc pl-5 space-y-1 text-slate-700 mb-3 pb-3 border-b border-slate-200">
           <li><strong>1905년~1924년:</strong> 늑대 사냥 허가로 늑대 개체수가 급감하자, 사슴의 개체수가 약 10만 마리까지 급증하였고 초원의 생산량은 크게 감소하였다.</li>
-          <li><strong>1925년~1935년:</strong>늑대 개체수는 여전히 낮은 상태였으나, 사슴의 개체수가 급격히 감소하였다.</li>
+          <li><strong>1925년~1935년:</strong> 늑대 개체수는 여전히 낮은 상태였으나, 사슴의 개체수가 급격히 감소하였다.</li>
         </ul>
         <div class="font-semibold text-xs text-slate-500 mb-1">&lt;보기&gt;</div>
         <div class="space-y-1 text-slate-700">
@@ -507,6 +551,165 @@
     let userAnswers = new Array(quizData.length).fill(null);
     let isSubmitted = false;
 
+    // 캔버스 필기 및 지우개 상태 변수
+    let isDrawMode = false;
+    let isEraser = false;
+    let penColor = '#ef4444';
+    let isDrawing = false;
+    let canvas, ctx;
+
+    window.addEventListener('DOMContentLoaded', () => {
+      canvas = document.getElementById('draw-canvas');
+      ctx = canvas.getContext('2d');
+      renderQuestions();
+      initCanvasEvents();
+    });
+
+    // 문서 높이에 맞춰 캔버스 크기를 조절하되 기존 그림을 보존하는 함수
+    function syncCanvasSize() {
+      if (!canvas) return;
+      const docWidth = document.documentElement.clientWidth;
+      const docHeight = Math.max(
+        document.body.scrollHeight,
+        document.documentElement.scrollHeight
+      );
+
+      if (canvas.width !== docWidth || canvas.height !== docHeight) {
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = canvas.width;
+        tempCanvas.height = canvas.height;
+        const tempCtx = tempCanvas.getContext('2d');
+        if (canvas.width > 0 && canvas.height > 0) {
+          tempCtx.drawImage(canvas, 0, 0);
+        }
+
+        canvas.width = docWidth;
+        canvas.height = docHeight;
+        ctx.drawImage(tempCanvas, 0, 0);
+      }
+    }
+
+    function initCanvasEvents() {
+      window.addEventListener('resize', syncCanvasSize);
+
+      // 터치 이벤트 (스마트폰/태블릿)
+      canvas.addEventListener('touchstart', startDraw, { passive: false });
+      canvas.addEventListener('touchmove', moveDraw, { passive: false });
+      canvas.addEventListener('touchend', endDraw);
+
+      // 마우스 이벤트 (PC)
+      canvas.addEventListener('mousedown', startDraw);
+      canvas.addEventListener('mousemove', moveDraw);
+      canvas.addEventListener('mouseup', endDraw);
+      canvas.addEventListener('mouseleave', endDraw);
+    }
+
+    function toggleDrawMode() {
+      isDrawMode = !isDrawMode;
+      const tools = document.getElementById('draw-tools');
+      const toggleBtn = document.getElementById('btn-draw-toggle');
+      const penText = document.getElementById('pen-text');
+
+      if (isDrawMode) {
+        syncCanvasSize();
+        canvas.classList.add('drawing-active');
+        tools.classList.remove('hidden');
+        toggleBtn.classList.replace('bg-slate-800', 'bg-indigo-600');
+        penText.innerText = '필기 끄기 (화면 이동)';
+      } else {
+        canvas.classList.remove('drawing-active');
+        tools.classList.add('hidden');
+        toggleBtn.classList.replace('bg-indigo-600', 'bg-slate-800');
+        penText.innerText = '필기 켜기';
+      }
+    }
+
+    function selectPen(color) {
+      isEraser = false;
+      penColor = color;
+      updateToolButtons();
+    }
+
+    function selectEraser() {
+      isEraser = true;
+      updateToolButtons();
+    }
+
+    function updateToolButtons() {
+      const redBtn = document.getElementById('pen-red');
+      const blueBtn = document.getElementById('pen-blue');
+      const blackBtn = document.getElementById('pen-black');
+      const eraserBtn = document.getElementById('btn-eraser');
+
+      [redBtn, blueBtn, blackBtn].forEach(b => {
+        b.classList.remove('ring-2', 'ring-red-400', 'ring-blue-400', 'ring-slate-300', 'border-white');
+        b.classList.add('border-transparent');
+      });
+      eraserBtn.className = 'px-2.5 py-1 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold flex items-center gap-1 transition';
+
+      if (isEraser) {
+        eraserBtn.className = 'px-2.5 py-1 rounded-full bg-amber-500 text-slate-950 font-bold flex items-center gap-1 ring-2 ring-amber-300 transition';
+      } else {
+        if (penColor === '#ef4444') {
+          redBtn.classList.replace('border-transparent', 'border-white');
+          redBtn.classList.add('ring-2', 'ring-red-400');
+        } else if (penColor === '#2563eb') {
+          blueBtn.classList.replace('border-transparent', 'border-white');
+          blueBtn.classList.add('ring-2', 'ring-blue-400');
+        } else {
+          blackBtn.classList.replace('border-transparent', 'border-white');
+          blackBtn.classList.add('ring-2', 'ring-slate-300');
+        }
+      }
+    }
+
+    function clearCanvas() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function getPointerPos(e) {
+      if (e.touches && e.touches.length > 0) {
+        return { x: e.touches[0].pageX, y: e.touches[0].pageY };
+      }
+      return { x: e.pageX, y: e.pageY };
+    }
+
+    function startDraw(e) {
+      if (!isDrawMode) return;
+      e.preventDefault();
+      isDrawing = true;
+      const pos = getPointerPos(e);
+
+      ctx.beginPath();
+      ctx.moveTo(pos.x, pos.y);
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+
+      if (isEraser) {
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.lineWidth = 28; // 지우개 두께
+      } else {
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.strokeStyle = penColor;
+        ctx.lineWidth = 3;  // 펜 두께
+      }
+    }
+
+    function moveDraw(e) {
+      if (!isDrawing || !isDrawMode) return;
+      e.preventDefault();
+      const pos = getPointerPos(e);
+      ctx.lineTo(pos.x, pos.y);
+      ctx.stroke();
+    }
+
+    function endDraw() {
+      if (!isDrawing) return;
+      isDrawing = false;
+      ctx.globalCompositeOperation = 'source-over';
+    }
+
+    // 퀴즈 렌더링 로직 (원본 100% 동일)
     function renderQuestions() {
       const container = document.getElementById('questions-container');
       container.innerHTML = '';
@@ -593,6 +796,8 @@
       });
 
       updateProgress();
+      // 해설이 펼쳐져 문서 길이가 늘어났을 때 캔버스 크기도 함께 확장
+      setTimeout(syncCanvasSize, 50);
     }
 
     function selectChoice(qIdx, cIdx) {
@@ -626,12 +831,14 @@
       renderQuestions();
     }
 
-    function filterQuestions(type) {
+    function filterQuestions(type, ev) {
       currentFilter = type;
       document.querySelectorAll('.filter-btn').forEach(btn => {
         btn.className = 'filter-btn px-3 py-1.5 rounded-lg text-sm font-medium bg-slate-100 text-slate-600 hover:bg-slate-200';
       });
-      event.target.className = 'filter-btn active px-3 py-1.5 rounded-lg text-sm font-semibold bg-slate-800 text-white';
+      if (ev && ev.target) {
+        ev.target.className = 'filter-btn active px-3 py-1.5 rounded-lg text-sm font-semibold bg-slate-800 text-white';
+      }
       renderQuestions();
     }
 
@@ -669,12 +876,10 @@
       isSubmitted = false;
       currentFilter = 'all';
       document.getElementById('result-dashboard').classList.add('hidden');
+      clearCanvas();
       renderQuestions();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-
-    // 초기 렌더링
-    renderQuestions();
   </script>
 </body>
 </html>
