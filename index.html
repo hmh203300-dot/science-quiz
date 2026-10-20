@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>2022 개정 통합과학2 - 생물과 환경 & 생태계평형 실전 테스트</title>
+  <title>2022 개정 통합과학2 - 실전 퀴즈 & 필기 모드</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
@@ -11,17 +11,16 @@
     .choice-btn { transition: all 0.15s ease-in-out; }
     .choice-btn:hover:not(:disabled) { transform: translateY(-1px); }
     
-    /* 문서 전체를 덮는 스크롤 연동 필기 캔버스 */
     #draw-canvas {
       position: absolute;
       top: 0;
       left: 0;
       z-index: 40;
-      pointer-events: none; /* 필기 꺼짐 상태에서는 아래 버튼 클릭 가능 */
+      pointer-events: none;
     }
     #draw-canvas.drawing-active {
-      pointer-events: auto; /* 필기 켜짐 상태에서는 캔버스에 그림 그려짐 */
-      touch-action: none;   /* 모바일에서 필기 중 화면 스크롤 방지 */
+      pointer-events: auto;
+      touch-action: none;
       cursor: crosshair;
     }
 
@@ -34,10 +33,8 @@
 </head>
 <body class="text-slate-800 pb-28">
 
-  <!-- 투명 필기 캔버스 레이어 -->
   <canvas id="draw-canvas" class="no-print"></canvas>
 
-  <!-- 상단 헤더 -->
   <header class="bg-indigo-900 text-white shadow-md sticky top-0 z-50 no-print">
     <div class="max-w-4xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-3">
       <div>
@@ -50,7 +47,6 @@
         <button onclick="window.print()" class="px-3 py-1.5 text-sm font-medium rounded-lg bg-emerald-600 text-white hover:bg-emerald-500 ml-1">인쇄</button>
       </div>
     </div>
-    <!-- 진행률 바 -->
     <div class="w-full bg-indigo-950 h-2">
       <div id="progress-bar" class="bg-emerald-400 h-2 transition-all duration-300" style="width: 0%"></div>
     </div>
@@ -58,7 +54,6 @@
 
   <main class="max-w-4xl mx-auto px-4 mt-6">
     
-    <!-- 컨트롤 & 카테고리 필터 탭 -->
     <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 mb-6 flex flex-wrap justify-between items-center gap-3 no-print">
       <div class="flex flex-wrap gap-2" id="filter-tabs">
         <button onclick="filterQuestions('all', event)" class="filter-btn active px-3 py-1.5 rounded-lg text-sm font-semibold bg-slate-800 text-white">전체 (20)</button>
@@ -71,12 +66,12 @@
       </div>
     </div>
 
-    <!-- 채점 결과 대시보드 (제출 시 표시) -->
+    <!-- 채점 결과 대시보드 및 카톡 공유 버튼 -->
     <div id="result-dashboard" class="hidden bg-gradient-to-r from-indigo-600 to-violet-700 text-white p-6 rounded-2xl shadow-lg mb-8 no-print">
       <div class="flex flex-col md:flex-row justify-between items-center gap-6">
         <div>
           <h2 class="text-2xl font-bold">채점 결과 리포트</h2>
-          <p class="text-indigo-100 text-sm mt-1">아래 각 문항에서 정답 해설과 오답 첨삭을 확인하세요.</p>
+          <p class="text-indigo-100 text-sm mt-1">아래 결과를 카카오톡으로 간편하게 제출할 수 있습니다.</p>
         </div>
         <div class="flex items-center gap-6 bg-white/10 px-6 py-4 rounded-xl backdrop-blur-sm">
           <div class="text-center">
@@ -96,16 +91,17 @@
           </div>
         </div>
       </div>
-      <div class="mt-4 pt-4 border-t border-white/20 flex justify-end gap-3">
+      <div class="mt-4 pt-4 border-t border-white/20 flex flex-wrap justify-end gap-3">
+        <button onclick="copyKakaoResult()" class="px-4 py-2 bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold text-sm rounded-lg shadow flex items-center gap-1.5">
+          <span>💬</span> 카톡 결과 제출 (복사)
+        </button>
         <button onclick="filterWrongOnly()" class="px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white text-sm font-semibold rounded-lg shadow">오답만 모아보기</button>
         <button onclick="resetQuiz()" class="px-4 py-2 bg-white text-indigo-900 hover:bg-indigo-50 text-sm font-semibold rounded-lg shadow">다시 풀기</button>
       </div>
     </div>
 
-    <!-- 문제 리스트 컨테이너 -->
     <div id="questions-container" class="space-y-6"></div>
 
-    <!-- 하단 제출 바 -->
     <div id="submit-bar" class="mt-8 bg-white p-5 rounded-xl shadow-md border border-slate-200 flex justify-between items-center no-print">
       <span class="text-sm text-slate-600">모든 문제를 푼 뒤 채점하기 버튼을 눌러주세요.</span>
       <div class="flex gap-3">
@@ -116,26 +112,22 @@
 
   </main>
 
-  <!-- ✏️ 모바일/PC 하단 플로팅 필기 & 지우개 툴바 -->
   <div class="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-slate-900/95 backdrop-blur-md text-white px-3.5 py-2 rounded-full shadow-2xl flex items-center gap-2 border border-slate-700 text-xs sm:text-sm whitespace-nowrap no-print">
     <button id="btn-draw-toggle" onclick="toggleDrawMode()" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-slate-800 hover:bg-slate-700 font-bold transition">
       <span>✏️</span> <span id="pen-text">필기 켜기</span>
     </button>
     
     <div id="draw-tools" class="hidden flex items-center gap-2 pl-2 border-l border-slate-700">
-      <!-- 펜 색상 선택 -->
       <button onclick="selectPen('#ef4444')" id="pen-red" class="w-6 h-6 rounded-full bg-red-500 border-2 border-white ring-2 ring-red-400 transition" title="빨간펜"></button>
       <button onclick="selectPen('#2563eb')" id="pen-blue" class="w-6 h-6 rounded-full bg-blue-600 border-2 border-transparent hover:scale-110 transition" title="파란펜"></button>
       <button onclick="selectPen('#1e293b')" id="pen-black" class="w-6 h-6 rounded-full bg-slate-800 border-2 border-slate-400 hover:scale-110 transition" title="검은펜"></button>
       
       <div class="h-4 w-px bg-slate-700 mx-0.5"></div>
 
-      <!-- 부분 지우개 -->
       <button onclick="selectEraser()" id="btn-eraser" class="px-2.5 py-1 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold flex items-center gap-1 transition">
         <span>🧽</span> 지우개
       </button>
 
-      <!-- 전체 지우기 -->
       <button onclick="clearCanvas()" class="px-2.5 py-1 rounded-full bg-rose-900/70 hover:bg-rose-700 text-rose-200 font-semibold transition">
         전체 삭제
       </button>
@@ -144,7 +136,6 @@
 
   <script>
     const quizData = [
-      // Part 1: 기본 개념 확인형 (1~10)
       {
         id: 1, type: 'basic', badge: '기본 개념 확인형',
         question: '생태계를 구성하는 단계에 대한 설명으로 옳은 것은?',
@@ -157,12 +148,12 @@
           '생태계 구성 단계를 작은 것부터 나열하면 \'개체 → 군집 → 개체군 → 생태계\' 순이다.'
         ],
         answer: 1,
-        explanation: '군집은 일정한 지역에 모여 생활하는 여러 종류의 개체군들의 집합입니다.',
+        explanation: '군집은 일정한 지역에 모여 생활하는 여러 종류의 개체군들의 집합입니다[cite: 19].',
         wrongNotes: [
-          '① 개체군은 일정한 지역에서 같은 종의 개체들이 무리를 이루어 생활하는 집단입니다.',
-          '③ 생태계는 자연 생태계뿐만 아니라 텃밭, 공원, 저수지, 어항 등 인위적으로 만들어진 생태계도 포함합니다.',
-          '④ 비생물요소는 군집이 아니라 생태계 단계에 포함됩니다(생태계 = 생물요소 + 비생물요소).',
-          '⑤ 크기 순서대로 나열하면 개체 → 개체군 → 군집 → 생태계 순입니다.'
+          '① 개체군은 일정한 지역에서 같은 종의 개체들이 무리를 이루어 생활하는 집단입니다[cite: 19].',
+          '③ 생태계는 자연 생태계뿐만 아니라 텃밭, 공원, 저수지, 어항 등 인위적으로 만들어진 생태계도 포함합니다[cite: 19].',
+          '④ 비생물요소는 군집이 아니라 생태계 단계에 포함됩니다[cite: 19, 24].',
+          '⑤ 크기 순서대로 나열하면 개체 → 개체군 → 군집 → 생태계 순입니다[cite: 19, 24].'
         ]
       },
       {
@@ -171,9 +162,9 @@
         box: null,
         choices: ['수련', '검정말', '부레옥잠', '식물 플랑크톤', '버섯'],
         answer: 4,
-        explanation: '버섯은 다른 생물의 사체나 배설물을 분해하여 양분을 얻는 분해자입니다.',
+        explanation: '버섯은 다른 생물의 사체나 배설물을 분해하여 양분을 얻는 분해자입니다[cite: 19, 20].',
         wrongNotes: [
-          '① 수련, ② 검정말, ③ 부레옥잠, ④ 식물 플랑크톤은 모두 광합성을 통해 생명활동에 필요한 양분을 스스로 만드는 생산자입니다.'
+          '① 수련, ② 검정말, ③ 부레옥잠, ④ 식물 플랑크톤은 모두 광합성을 통해 생명활동에 필요한 양분을 스스로 만드는 생산자입니다[cite: 19, 20].'
         ]
       },
       {
@@ -188,25 +179,25 @@
           '송어와 노루가 가을에 번식하는 것은 빛의 세기와 직접적인 관련이 있다.'
         ],
         answer: 4,
-        explanation: '송어와 노루가 가을에 번식하고 꾀꼬리와 종달새가 봄에 번식하는 것은 빛의 세기가 아니라 일조 시간(낮의 길이)의 영향을 받는 사례입니다.',
+        explanation: '송어와 노루가 가을에 번식하고 꾀꼬리와 종달새가 봄에 번식하는 것은 빛의 세기가 아니라 일조 시간(낮의 길이)의 영향을 받는 사례입니다[cite: 21].',
         wrongNotes: [
-          '①, ② 빛의 세기에 따라 식물 잎의 울타리 조직 발달 정도(두께)와 면적이 달라집니다.',
-          '③, ④ 식물의 개화 시기는 일조 시간의 영향을 받습니다.'
+          '①, ② 빛의 세기에 따라 식물 잎의 울타리 조직 발달 정도(두께)와 면적이 달라집니다[cite: 21].',
+          '③, ④ 식물의 개화 시기는 일조 시간의 영향을 받습니다[cite: 21].'
         ]
       },
       {
         id: 4, type: 'basic', badge: '기본 개념 확인형',
         question: '다음은 어떤 환경요인에 대한 생물의 적응 사례이다. 이와 가장 관련이 깊은 비생물요소는?',
         box: `<ul class="list-disc pl-5 space-y-1 text-slate-700">
-          <li>양서류와 파충류는 겨울이 되면 겨울잠을 잔다.</li>
-          <li>툰드라에 사는 털송이풀은 잎이나 꽃에 털이 나 있다.</li>
-          <li>상록수는 잎의 큐티클층이 두꺼워 잎을 떨어뜨리지 않고 겨울을 난다.</li>
+          <li>양서류와 파충류는 겨울이 되면 겨울잠을 잔다[cite: 21].</li>
+          <li>툰드라에 사는 털송이풀은 잎이나 꽃에 털이 나 있다[cite: 21].</li>
+          <li>상록수는 잎의 큐티클층이 두꺼워 잎을 떨어뜨리지 않고 겨울을 난다[cite: 21].</li>
         </ul>`,
         choices: ['물', '빛', '온도', '토양', '공기'],
         answer: 2,
-        explanation: '변온동물의 겨울잠, 털송이풀의 털, 상록수의 두꺼운 큐티클층은 모두 낮은 기온(온도)에 적응한 현상입니다.',
+        explanation: '변온동물의 겨울잠, 털송이풀의 털, 상록수의 두꺼운 큐티클층은 모두 낮은 기온(온도)에 적응한 현상입니다[cite: 21].',
         wrongNotes: [
-          '① 물, ② 빛, ④ 토양, ⑤ 공기가 아닌 온도(기온)와 관련된 적응 사례입니다.'
+          '① 물, ② 빛, ④ 토양, ⑤ 공기가 아닌 온도(기온)와 관련된 적응 사례입니다[cite: 21].'
         ]
       },
       {
@@ -214,17 +205,17 @@
         question: '물과 생물의 상호 관계에 대한 설명으로 옳은 것만을 <보기>에서 있는 대로 고른 것은?',
         box: `<div class="font-semibold text-xs text-slate-500 mb-1">&lt;보기&gt;</div>
         <div class="space-y-1 text-slate-700">
-          <p>ㄱ. 곤충의 몸 표면이 키틴질로 되어 있는 것은 몸속 수분 증발을 막기 위함이다.</p>
-          <p>ㄴ. 사막에 사는 선인장은 잎이 가시로 변해 수분의 증발을 막는다.</p>
-          <p>ㄷ. 물에 서식하는 수련과 연꽃은 줄기와 뿌리에 통기조직이 발달해 있다.</p>
+          <p>ㄱ. 곤충의 몸 표면이 키틴질로 되어 있는 것은 몸속 수분 증발을 막기 위함이다[cite: 22].</p>
+          <p>ㄴ. 사막에 사는 선인장은 잎이 가시로 변해 수분의 증발을 막는다[cite: 22].</p>
+          <p>ㄷ. 물에 서식하는 수련과 연꽃은 줄기와 뿌리에 통기조직이 발달해 있다[cite: 22].</p>
         </div>`,
         choices: ['ㄱ', 'ㄴ', 'ㄱ, ㄷ', 'ㄴ, ㄷ', 'ㄱ, ㄴ, ㄷ'],
         answer: 4,
-        explanation: 'ㄱ, ㄴ, ㄷ 모두 물(수분) 환경에 대한 동물과 식물의 올바른 적응 사례입니다.',
+        explanation: 'ㄱ, ㄴ, ㄷ 모두 물(수분) 환경에 대한 동물과 식물의 올바른 적응 사례입니다[cite: 22].',
         wrongNotes: [
-          'ㄱ. 곤충의 외골격을 이루는 키틴질과 파충류의 비늘, 단단한 알 껍질은 모두 수분 증발을 막아줍니다. (O)',
-          'ㄴ. 선인장은 줄기에 물을 저장하고 잎이 가시로 변해 수분 증발을 막습니다. (O)',
-          'ㄷ. 수생식물인 수련과 연꽃은 물속 환경에서 공기가 잘 통하도록 통기조직이 발달해 있습니다. (O)'
+          'ㄱ. 곤충의 외골격을 이루는 키틴질과 파충류의 비늘은 수분 증발을 막아줍니다[cite: 22]. (O)',
+          'ㄴ. 선인장은 줄기에 물을 저장하고 잎이 가시로 변해 수분 증발을 막습니다[cite: 22]. (O)',
+          'ㄷ. 수생식물은 수중 환경에서 공기가 잘 통하도록 통기조직이 발달해 있습니다[cite: 22]. (O)'
         ]
       },
       {
@@ -239,11 +230,11 @@
           '토양 속 미생물은 사체나 배설물을 분해하여 물질을 순환시킨다.'
         ],
         answer: 0,
-        explanation: '공기가 많이 포함되어 있는 토양 표면에는 산소를 필요로 하는 호기성 세균이 주로 분포하고, 공기가 적은 토양 깊은 곳에 혐기성 세균이 분포합니다.',
+        explanation: '공기가 많이 포함되어 있는 토양 표면에는 산소를 필요로 하는 호기성 세균이 주로 분포하고, 공기가 적은 토양 깊은 곳에 혐기성 세균이 분포합니다[cite: 22].',
         wrongNotes: [
-          '② 지렁이와 두더지가 토양의 통기성을 높이는 것은 생물이 토양(비생물요소)에 영향을 주는 예입니다.',
-          '③ 산소가 희박한 고산지대에서는 산소를 효율적으로 운반하기 위해 적혈구 수가 많아집니다.',
-          '④ 식물이 피톤치드를 분비해 공기 성분을 바꾸는 것은 생물요소가 비생물요소에 영향을 주는 사례입니다.'
+          '② 지렁이와 두더지가 토양의 통기성을 높이는 것은 생물이 토양(비생물요소)에 영향을 주는 예입니다[cite: 22, 26].',
+          '③ 산소가 희박한 고산지대에서는 산소를 효율적으로 운반하기 위해 적혈구 수가 많아집니다[cite: 22].',
+          '④ 식물이 피톤치드를 분비해 공기 성분을 바꾸는 것은 생물요소가 비생물요소에 영향을 주는 사례입니다[cite: 22].'
         ]
       },
       {
@@ -258,30 +249,44 @@
           '각 영양단계에서 생명활동에 쓰인 에너지는 다시 빛에너지 형태로 생태계 밖으로 방출된다.'
         ],
         answer: 2,
-        explanation: '생산자는 광합성을 통해 태양의 빛에너지를 생명활동에 필요한 유기물의 화학 에너지로 전환합니다.',
+        explanation: '생산자는 광합성을 통해 태양의 빛에너지를 생명활동에 필요한 유기물의 화학 에너지로 전환합니다[cite: 28, 32].',
         wrongNotes: [
-          '① 사슬 모양으로 연결된 것은 먹이사슬이고, 여러 먹이사슬이 그물처럼 복잡하게 얽힌 것은 먹이그물입니다.',
-          '② 생태계에서 물질은 순환하지만, 에너지는 순환하지 않고 한 방향으로만 흐릅니다.',
-          '④ 하위 영양단계 에너지 중 일부는 세포호흡(열 방출)이나 사체·배설물로 빠져나가고 일부만 상위 영양단계로 이동합니다.',
-          '⑤ 각 영양단계에서 방출되는 에너지는 빛에너지가 아니라 열에너지 형태입니다.'
+          '① 사슬 모양은 먹이사슬, 그물처럼 얽힌 것은 먹이그물입니다[cite: 28].',
+          '② 물질은 순환하지만, 에너지는 순환하지 않고 한 방향으로만 흐릅니다[cite: 28].',
+          '④ 하위 단계 에너지 중 일부는 호흡이나 사체·배설물로 빠져나가고 일부만 전달됩니다[cite: 28].',
+          '⑤ 방출되는 에너지는 빛에너지가 아니라 열에너지 형태입니다[cite: 28].'
         ]
       },
       {
         id: 8, type: 'basic', badge: '기본 개념 확인형',
-        question: '안정된 생태계의 생태피라미드에 대한 설명으로 옳지 않은 것은?',
-        box: null,
-        choices: [
-          '각 영양단계의 개체수, 생물량, 에너지양을 하위 영양단계부터 순서대로 쌓아 올린 것이다.',
-          '일반적으로 상위 영양단계로 갈수록 줄어드는 피라미드 형태를 나타낸다.',
-          '생물량은 일정한 공간에 서식하는 생물 전체의 무게(생체량)를 의미한다.',
-          '1차 소비자는 초식 동물, 2차 소비자는 육식 동물에 해당한다.',
-          '상위 영양단계로 갈수록 생물 개체 하나의 크기가 작아지기 때문에 에너지양이 감소한다.'
-        ],
+        question: '안정된 생태계의 영양단계와 생태피라미드에 대한 설명으로 옳은 것만을 <보기>에서 있는 대로 고른 것은?',
+        box: `
+        <div class="bg-white p-3 rounded-xl border border-slate-200 mb-3 flex justify-center">
+          <svg viewBox="0 0 380 130" class="w-full max-w-sm h-auto" xmlns="http://www.w3.org/2000/svg">
+            <!-- 3차 소비자 -->
+            <polygon points="160,10 220,10 210,35 170,35" fill="#f43f5e" opacity="0.85"/>
+            <text x="190" y="26" font-size="10" fill="white" font-weight="bold" text-anchor="middle">3차 소비자</text>
+            <!-- 2차 소비자 -->
+            <polygon points="145,38 235,38 220,68 160,68" fill="#8b5cf6" opacity="0.85"/>
+            <text x="190" y="56" font-size="10" fill="white" font-weight="bold" text-anchor="middle">2차 소비자</text>
+            <!-- 1차 소비자 -->
+            <polygon points="120,71 260,71 235,101 145,101" fill="#3b82f6" opacity="0.85"/>
+            <text x="190" y="89" font-size="10" fill="white" font-weight="bold" text-anchor="middle">1차 소비자</text>
+            <!-- 생산자 -->
+            <polygon points="80,104 300,104 260,134 120,134" fill="#10b981" opacity="0.85"/>
+            <text x="190" y="122" font-size="11" fill="white" font-weight="bold" text-anchor="middle">생산자 (식물 등)</text>
+          </svg>
+        </div>
+        <div class="font-semibold text-xs text-slate-500 mb-1">&lt;보기&gt;</div>
+        <div class="space-y-1 text-slate-700">
+          <p>ㄱ. 개체수, 생물량, 에너지양은 일반적으로 하위 영양단계에서 상위로 갈수록 감소한다.</p>
+          <p>ㄴ. 생물량은 일정한 공간에 서식하는 생물 전체의 무게를 의미한다.</p>
+          <p>ㄷ. 상위 영양단계로 갈수록 에너지양이 감소하는 이유는 생명활동에 쓰이고 소모되기 때문이다.</p>
+        </div>`,
+        choices: ['ㄱ', 'ㄴ', 'ㄱ, ㄷ', 'ㄴ, ㄷ', 'ㄱ, ㄴ, ㄷ'],
         answer: 4,
-        explanation: '상위 영양단계로 갈수록 에너지양이 감소하는 까닭은 각 영양단계의 생물이 생명활동(호흡 등)에 에너지를 소비하고 남은 일부 에너지만 다음 단계로 전달되기 때문입니다.',
-        wrongNotes: [
-          '①, ②, ③, ④는 모두 생태피라미드와 영양단계에 대한 옳은 설명입니다.'
-        ]
+        explanation: 'ㄱ, ㄴ, ㄷ 모두 생태피라미드와 영양단계에 대한 완벽한 설명입니다[cite: 28].',
+        wrongNotes: []
       },
       {
         id: 9, type: 'basic', badge: '기본 개념 확인형',
@@ -289,14 +294,14 @@
         box: `<div class="font-semibold text-xs text-slate-500 mb-1">&lt;보기&gt;</div>
         <div class="space-y-1 text-slate-700">
           <p>ㄱ. 먹이그물이 단순할수록 한 생물종이 사라져도 대체할 종이 많아 생태계평형이 잘 유지된다.</p>
-          <p>ㄴ. 포식과 피식 관계에 있는 스라소니와 눈신토끼의 개체수는 주기적으로 변동한다.</p>
-          <p>ㄷ. 남극의 황제펭귄은 천적이 적지만 극심한 추위라는 환경 조건에 의해 개체수가 조절된다.</p>
+          <p>ㄴ. 포식과 피식 관계에 있는 스라소니와 눈신토끼의 개체수는 주기적으로 변동한다[cite: 29].</p>
+          <p>ㄷ. 남극의 황제펭귄은 천적이 적지만 극심한 추위라는 환경 조건에 의해 개체수가 조절된다[cite: 29].</p>
         </div>`,
         choices: ['ㄱ', 'ㄴ', 'ㄱ, ㄷ', 'ㄴ, ㄷ', 'ㄱ, ㄴ, ㄷ'],
         answer: 3,
-        explanation: 'ㄴ. 스라소니와 눈신토끼는 약 10년을 주기로 개체수가 변동합니다. ㄷ. 남극과 같은 극한 환경에서는 극심한 추위라는 환경 조건이 개체수를 조절하여 평형을 유지합니다.',
+        explanation: 'ㄴ. 스라소니와 눈신토끼는 약 10년을 주기로 개체수가 변동합니다[cite: 29]. ㄷ. 남극과 같은 극한 환경에서는 추위라는 환경 조건이 개체수를 조절합니다[cite: 29].',
         wrongNotes: [
-          'ㄱ. 먹이그물이 복잡할수록(종다양성이 높을수록) 어느 한 생물종이 사라져도 이를 대체할 다른 생물종이 있어 생태계평형이 잘 깨지지 않습니다. (X)'
+          'ㄱ. 먹이그물이 복잡할수록(종다양성이 높을수록) 생태계평형이 잘 깨지지 않습니다[cite: 29]. (X)'
         ]
       },
       {
@@ -304,16 +309,16 @@
         question: '환경 변화와 생태계 보전을 위한 노력에 대한 설명으로 옳지 않은 것은?',
         box: null,
         choices: [
-          '지진, 화산, 홍수 등의 자연재해는 생태계평형을 깨뜨리는 원인이 된다.',
-          '코끼리나 고래처럼 자손을 적게 낳고 세대가 긴 동물을 남획하면 단시간 내에 멸종할 수 있다.',
-          '화석 연료의 과다 사용은 대기 중 이산화 탄소 농도를 높여 지구 온난화를 유발한다.',
-          '대규모 간척 사업이나 무분별한 벌목은 생물의 서식지를 넓혀 생태계를 복잡하게 만든다.',
-          '환경 파괴 우려가 있는 사업 시작 전에는 환경영향평가를 실시하여 생태계에 미칠 영향을 검토해야 한다.'
+          '지진, 화산, 홍수 등의 자연재해는 생태계평형을 깨뜨리는 원인이 된다[cite: 30].',
+          '코끼리나 고래처럼 자손을 적게 낳고 세대가 긴 동물을 남획하면 단시간 내에 멸종할 수 있다[cite: 30].',
+          '화석 연료의 과다 사용은 대기 중 이산화 탄소 농도를 높여 지구 온난화를 유발한다[cite: 30].',
+          '대규모 간척 사업이나 무분별한 벌목은 생물의 서식지를 넓혀 생태계를 복잡하게 만든다[cite: 30].',
+          '환경 파괴 우려가 있는 사업 시작 전에는 환경영향평가를 실시하여 생태계에 미칠 영향을 검토해야 한다[cite: 30].'
         ],
         answer: 3,
-        explanation: '대규모 간척 사업이나 토목 공사, 무분별한 벌목은 생물의 서식지를 파괴하여 생태계를 불안정하고 단순하게 만듭니다.',
+        explanation: '대규모 간척 사업이나 토목 공사, 무분별한 벌목은 생물의 서식지를 파괴하여 생태계를 불안정하고 단순하게 만듭니다[cite: 30].',
         wrongNotes: [
-          '①, ②, ③은 생태계평형이 깨지는 원인에 해당하며, ⑤는 생태계 보전을 위한 올바른 노력입니다.'
+          '①, ②, ③은 평형 파괴 원인, ⑤는 보전을 위한 올바른 노력입니다[cite: 30].'
         ]
       },
 
@@ -322,22 +327,22 @@
         id: 11, type: 'applied', badge: '응용 및 함정 포함',
         question: '다음은 생태계 구성요소 간의 상호작용 사례 (가)~(라)를 나타낸 것이다. 이에 대한 설명으로 옳은 것만을 <보기>에서 있는 대로 고른 것은?',
         box: `<div class="space-y-1 text-slate-700 mb-3 pb-3 border-b border-slate-200">
-          <p>(가) 낙엽이 쌓여 분해되면 토양이 비옥해진다.</p>
-          <p>(나) 추운 겨울 날씨 때문에 개구리가 겨울잠을 잔다.</p>
-          <p>(다) 초식동물은 식물의 열매를 먹고, 식물은 초식동물의 배설물을 통해 씨앗을 퍼트린다.</p>
-          <p>(라) 숲에 사는 식물은 광합성을 하여 대기 중 산소 농도를 높인다.</p>
+          <p>(가) 낙엽이 쌓여 분해되면 토양이 비옥해진다[cite: 20].</p>
+          <p>(나) 추운 겨울 날씨 때문에 개구리가 겨울잠을 잔다[cite: 20, 27].</p>
+          <p>(다) 초식동물은 식물의 열매를 먹고, 식물은 초식동물의 배설물을 통해 씨앗을 퍼트린다[cite: 20].</p>
+          <p>(라) 숲에 사는 식물은 광합성을 하여 대기 중 산소 농도를 높인다[cite: 20].</p>
         </div>
         <div class="font-semibold text-xs text-slate-500 mb-1">&lt;보기&gt;</div>
         <div class="space-y-1 text-slate-700">
-          <p>ㄱ. (가)와 (라)는 모두 생물요소가 비생물요소에 영향을 주는 사례이다.</p>
+          <p>ㄱ. (가)와 (라)는 모두 생물요소가 비생물요소에 영향을 주는 사례이다[cite: 20].</p>
           <p>ㄴ. (나)는 생물이 환경에 영향을 주어 환경 조건을 변화시킨 사례이다.</p>
-          <p>ㄷ. (다)는 서로 다른 개체군 사이의 상호작용(생물요소 간 상호작용)에 해당한다.</p>
+          <p>ㄷ. (다)는 서로 다른 개체군 사이의 상호작용(생물요소 간 상호작용)에 해당한다[cite: 20, 24].</p>
         </div>`,
         choices: ['ㄱ', 'ㄴ', 'ㄱ, ㄷ', 'ㄴ, ㄷ', 'ㄱ, ㄴ, ㄷ'],
         answer: 2,
-        explanation: 'ㄱ. 낙엽이 토양을 비옥하게 하는 것(가)과 식물이 대기 중 산소 농도를 높이는 것(라)은 모두 생물요소가 비생물요소에 영향을 주는 예입니다. ㄷ. 초식동물 개체군과 식물 개체군 사이의 상호작용은 군집 내 서로 다른 개체군(생물요소) 간의 상호작용입니다.',
+        explanation: 'ㄱ. 낙엽이 토양을 비옥하게 하는 것(가)과 식물이 산소 농도를 높이는 것(라)은 생물이 비생물요소에 영향을 주는 예입니다[cite: 20]. ㄷ. 초식동물과 식물 개체군 간의 상호작용은 생물요소 간 상호작용입니다[cite: 20, 24].',
         wrongNotes: [
-          'ㄴ. (나)는 추운 날씨(비생물요소)가 개구리(생물요소)의 생활 방식에 영향을 준 사례입니다. (방향 반대 함정)'
+          'ㄴ. (나)는 추운 날씨(비생물요소)가 개구리(생물요소)에게 영향을 준 사례입니다[cite: 20, 27].'
         ]
       },
       {
@@ -345,33 +350,56 @@
         question: '생태계에서 유기물의 이동과 분해자의 역할에 대한 설명으로 옳은 것만을 <보기>에서 있는 대로 고른 것은?',
         box: `<div class="font-semibold text-xs text-slate-500 mb-1">&lt;보기&gt;</div>
         <div class="space-y-1 text-slate-700">
-          <p>ㄱ. 버섯, 곰팡이, 세균은 다른 생물의 사체나 배설물을 분해하여 양분을 얻는 분해자이다.</p>
+          <p>ㄱ. 버섯, 곰팡이, 세균은 다른 생물의 사체나 배설물을 분해하여 양분을 얻는 분해자이다[cite: 19].</p>
           <p>ㄴ. 생산자가 만든 유기물의 일부는 소비자로 이동하지만, 분해자로는 유기물이 이동하지 않는다.</p>
           <p>ㄷ. 생태계에 분해자가 사라지면 토양 속 유기물이 점차 고갈되어 식물이 자라기 어려워진다.</p>
         </div>`,
         choices: ['ㄱ', 'ㄷ', 'ㄱ, ㄴ', 'ㄱ, ㄷ', 'ㄴ, ㄷ'],
         answer: 0,
-        explanation: 'ㄱ. 버섯, 곰팡이, 세균은 사체나 배설물 속 유기물을 무기물로 분해하여 양분을 얻는 분해자입니다.',
+        explanation: 'ㄱ. 버섯, 곰팡이, 세균은 사체나 배설물 속 유기물을 분해하는 분해자입니다[cite: 19].',
         wrongNotes: [
-          'ㄴ. 분해자는 생산자와 소비자의 사체나 배설물로부터 유기물을 얻으므로, 생산자와 소비자에서 분해자로도 유기물이 이동합니다. (함정 선지)',
-          'ㄷ. 분해자가 없다면 사체나 배설물이 분해되지 않아 토양에 유기물이 점차 쌓여 환경이 오염되고, 식물이 흡수할 토양의 무기 영양분이 고갈됩니다. (\'유기물 고갈\'이 아니라 \'유기물 축적 및 영양분 고갈\'임)'
+          'ㄴ. 분해자는 생산자와 소비자의 사체나 배설물로부터 유기물을 얻으므로 분해자로도 유기물이 이동합니다[cite: 19].',
+          'ㄷ. 분해자가 없으면 유기물이 토양에 점차 쌓여 환경이 오염되고 무기 영양분이 고갈됩니다[cite: 20].'
         ]
       },
       {
         id: 13, type: 'applied', badge: '응용 및 함정 포함',
-        question: '북극여우와 사막여우의 형태적 차이에 대한 설명으로 옳은 것만을 <보기>에서 있는 대로 고른 것은?',
-        box: `<div class="font-semibold text-xs text-slate-500 mb-1">&lt;보기&gt;</div>
+        question: '다음은 온도에 따른 북극여우와 사막여우의 형태적 적응 사례이다. 이에 대한 설명으로 옳은 것만을 <보기>에서 있는 대로 고른 것은?',
+        box: `
+        <div class="bg-white p-3 rounded-xl border border-slate-200 mb-3 flex justify-around items-center">
+          <div class="text-center">
+            <svg viewBox="0 0 120 100" class="w-24 h-auto mx-auto" xmlns="http://www.w3.org/2000/svg">
+              <!-- 북극여우: 둥글고 큰 몸통, 매우 작은 귀 -->
+              <ellipse cx="60" cy="65" rx="32" ry="24" fill="#f8fafc" stroke="#64748b" stroke-width="2"/>
+              <circle cx="60" cy="42" r="18" fill="#f8fafc" stroke="#64748b" stroke-width="2"/>
+              <polygon points="48,30 54,42 44,40" fill="#cbd5e1" stroke="#64748b" stroke-width="1.5"/>
+              <polygon points="72,30 66,42 76,40" fill="#cbd5e1" stroke="#64748b" stroke-width="1.5"/>
+              <text x="60" y="94" font-size="10" fill="#334155" font-weight="bold" text-anchor="middle">북극여우 (귀 작음)</text>
+            </svg>
+          </div>
+          <div class="text-center">
+            <svg viewBox="0 0 120 100" class="w-24 h-auto mx-auto" xmlns="http://www.w3.org/2000/svg">
+              <!-- 사막여우: 날렵한 몸통, 거대한 귀 -->
+              <ellipse cx="60" cy="68" rx="24" ry="18" fill="#fef3c7" stroke="#d97706" stroke-width="2"/>
+              <circle cx="60" cy="48" r="14" fill="#fef3c7" stroke="#d97706" stroke-width="2"/>
+              <polygon points="42,38 32,15 54,35" fill="#fde68a" stroke="#d97706" stroke-width="1.5"/>
+              <polygon points="78,38 88,15 66,35" fill="#fde68a" stroke="#d97706" stroke-width="1.5"/>
+              <text x="60" y="94" font-size="10" fill="#334155" font-weight="bold" text-anchor="middle">사막여우 (귀 큼)</text>
+            </svg>
+          </div>
+        </div>
+        <div class="font-semibold text-xs text-slate-500 mb-1">&lt;보기&gt;</div>
         <div class="space-y-1 text-slate-700">
-          <p>ㄱ. 사막여우는 북극여우보다 몸집이 작고 귀(말단부)가 크다.</p>
+          <p>ㄱ. 사막여우는 북극여우보다 몸집이 작고 귀(말단부)가 크다[cite: 21, 26].</p>
           <p>ㄴ. 북극여우의 귀가 작은 것은 몸에서 열이 방출되는 것을 늘리기 위한 적응이다.</p>
-          <p>ㄷ. 여우의 서식지별 형태 차이는 비생물요소 중 \'일조 시간\'이 생물요소에 영향을 준 결과이다.</p>
+          <p>ㄷ. 여우의 서식지별 형태 차이는 비생물요소 중 '일조 시간'이 생물요소에 영향을 준 결과이다.</p>
         </div>`,
         choices: ['ㄱ', 'ㄴ', 'ㄱ, ㄴ', 'ㄱ, ㄷ', 'ㄱ, ㄴ, ㄷ'],
         answer: 0,
-        explanation: 'ㄱ. 포유류는 추운 지역에 살수록 몸집이 크고 말단부가 작아지며, 더운 사막에 사는 사막여우는 북극여우보다 몸집이 작고 귀가 큽니다.',
+        explanation: 'ㄱ. 더운 사막에 사는 사막여우는 북극여우보다 몸집이 작고 귀가 커서 열 방출에 유리합니다[cite: 21, 26].',
         wrongNotes: [
-          'ㄴ. 북극여우의 귀가 작은 것은 열 방출량을 줄이기(적게 하기) 위한 적응입니다. (X)',
-          'ㄷ. 여우의 몸집과 말단부 크기 차이는 일조 시간이 아니라 \'온도\'에 적응한 결과입니다. (X)'
+          'ㄴ. 북극여우의 귀가 작은 것은 열 방출량을 줄이기(적게 하기) 위한 적응입니다[cite: 21]. (X)',
+          'ㄷ. 여우의 형태 차이는 일조 시간이 아니라 온도에 적응한 결과입니다[cite: 21, 23]. (X)'
         ]
       },
       {
@@ -386,38 +414,78 @@
           '포식자의 번식 속도가 지나치게 빨라 피식자가 멸종하더라도 생태계평형은 즉시 회복된다.'
         ],
         answer: 1,
-        explanation: '2차 소비자가 증가하면 포식당하는 1차 소비자의 개체수가 감소하고, 그 결과 1차 소비자에게 먹히는 생산자의 개체수는 일시적으로 증가합니다. (순서: 2차 소비자 증가 → 1차 소비자 감소, 생산자 증가 → 2차 소비자 감소 → 1차 소비자 증가, 생산자 감소 → 평형 회복)',
+        explanation: '2차 소비자가 증가하면 포식당하는 1차 소비자는 감소하고, 그 결과 1차 소비자에게 먹히는 생산자는 일시적으로 증가합니다[cite: 31, 32].',
         wrongNotes: [
-          '① 1차 소비자는 감소하지만 생산자는 증가합니다.',
-          '③ 먹이인 1차 소비자가 감소하면 2차 소비자의 개체수도 감소합니다.',
-          '④ 먹이인 생산자가 증가하고 천적인 2차 소비자가 감소하므로 1차 소비자의 개체수는 다시 증가합니다.',
-          '⑤ 포식자의 번식 속도가 매우 빨라 피식자가 사라지면 생태계가 파괴될 수 있습니다.'
+          '① 1차 소비자는 감소하지만 생산자는 증가합니다[cite: 31, 32].',
+          '③ 먹이가 부족해지면 2차 소비자의 개체수도 감소합니다[cite: 31, 32].',
+          '④ 생산자가 증가하고 2차 소비자가 감소하므로 1차 소비자의 개체수는 다시 증가합니다[cite: 31, 32].',
+          '⑤ 피식자가 사라지면 생태계가 파괴될 수 있습니다[cite: 31].'
         ]
       },
       {
         id: 15, type: 'applied', badge: '응용 및 함정 포함',
-        question: '해양 생태계에서 멸치의 위 내용물을 현미경으로 관찰했더니 \'동물 플랑크톤\'이 발견되었다. 이 탐구와 해양 생태계 먹이그물에 대한 설명으로 옳은 것만을 <보기>에서 있는 대로 고른 것은?',
+        question: '해양 생태계에서 멸치의 위 내용물을 현미경으로 관찰했더니 \'동물 플랑크톤\'이 발견되었다[cite: 36]. 이 탐구와 해양 생태계 먹이그물에 대한 설명으로 옳은 것만을 <보기>에서 있는 대로 고른 것은?',
         box: `<div class="font-semibold text-xs text-slate-500 mb-1">&lt;보기&gt;</div>
         <div class="space-y-1 text-slate-700">
-          <p>ㄱ. 멸치의 영양단계는 동물 플랑크톤보다 상위 단계이다.</p>
-          <p>ㄴ. 해양 먹이그물에서 멸치가 식물 플랑크톤과 동물 플랑크톤을 모두 먹는다면, 멸치는 1차 소비자이면서 동시에 2차 소비자이다.</p>
+          <p>ㄱ. 멸치의 영양단계는 동물 플랑크톤보다 상위 단계이다[cite: 36].</p>
+          <p>ㄴ. 해양 먹이그물에서 멸치가 식물 플랑크톤과 동물 플랑크톤을 모두 먹는다면, 멸치는 1차 소비자이면서 동시에 2차 소비자이다[cite: 32].</p>
           <p>ㄷ. 안정된 생태피라미드에서 생물량은 멸치보다 동물 플랑크톤이 더 적다.</p>
         </div>`,
         choices: ['ㄱ', 'ㄷ', 'ㄱ, ㄴ', 'ㄴ, ㄷ', 'ㄱ, ㄴ, ㄷ'],
         answer: 2,
-        explanation: 'ㄱ. 멸치가 동물 플랑크톤을 포식했으므로 멸치는 동물 플랑크톤보다 상위 영양단계입니다. ㄴ. 식물 플랑크톤(생산자)을 먹을 때는 1차 소비자, 동물 플랑크톤(1차 소비자)을 먹을 때는 2차 소비자의 지위를 갖습니다.',
+        explanation: 'ㄱ. 멸치가 동물 플랑크톤을 포식했으므로 상위 영양단계입니다[cite: 36]. ㄴ. 식물 플랑크톤을 먹을 때는 1차, 동물 플랑크톤을 먹을 때는 2차 소비자입니다[cite: 32].',
         wrongNotes: [
-          'ㄷ. 안정된 생태피라미드에서는 하위 영양단계인 동물 플랑크톤의 생물량이 상위 영양단계인 멸치보다 더 많습니다. (X)'
+          'ㄷ. 안정된 생태피라미드에서는 하위 영양단계인 동물 플랑크톤의 생물량이 멸치보다 더 많습니다[cite: 28, 36]. (X)'
         ]
       },
 
-      // Part 3: 자료해석형 (16~20)
+      // Part 3: 자료해석형 (16~20) - 시험지형 SVG 그래프 및 다이어그램 포함
       {
         id: 16, type: 'data', badge: '자료해석형',
         question: '다음은 바다의 깊이에 따라 도달하는 빛의 파장과 해조류의 분포를 나타낸 자료이다. 이에 대한 해석으로 옳지 않은 것은?',
-        box: `<ul class="list-disc pl-5 space-y-1 text-slate-700">
-          <li><strong>도달 깊이:</strong> 적색광(660nm)은 약 20m, 황색광(600nm)은 약 40m, 청색광(470nm)은 40m보다 깊은 곳까지 도달한다.</li>
-          <li><strong>해조류 분포:</strong> 녹조류(해캄)는 0~20m에 주로 분포하고, 갈조류는 0~40m, 홍조류(우뭇가사리)는 얕은 곳부터 40m보다 깊은 바다까지 폭넓게 분포한다.</li>
+        box: `
+        <div class="bg-white p-3 rounded-xl border border-slate-200 mb-3 flex justify-center">
+          <svg viewBox="0 0 460 220" class="w-full max-w-lg h-auto" xmlns="http://www.w3.org/2000/svg">
+            <rect x="30" y="30" width="180" height="170" fill="#e0f2fe"/>
+            <rect x="210" y="30" width="220" height="170" fill="#f0f9ff"/>
+            <polygon points="30,30 60,30 95,90 140,140 195,200 30,200" fill="#a8a29e"/>
+            <line x1="30" y1="30" x2="430" y2="30" stroke="#0284c7" stroke-width="2"/>
+            <text x="35" y="22" font-size="11" fill="#0369a1" font-weight="bold">해수면 (0m)</text>
+            
+            <rect x="85" y="30" width="18" height="50" rx="4" fill="#22c55e" opacity="0.85"/>
+            <text x="94" y="94" font-size="11" fill="#15803d" font-weight="bold" text-anchor="middle">녹조류</text>
+            <rect x="130" y="30" width="18" height="100" rx="4" fill="#d97706" opacity="0.85"/>
+            <text x="139" y="144" font-size="11" fill="#b45309" font-weight="bold" text-anchor="middle">갈조류</text>
+            <rect x="175" y="30" width="18" height="150" rx="4" fill="#ef4444" opacity="0.85"/>
+            <text x="184" y="194" font-size="11" fill="#b91c1c" font-weight="bold" text-anchor="middle">홍조류</text>
+
+            <line x1="210" y1="30" x2="210" y2="200" stroke="#334155" stroke-width="1.5"/>
+            <text x="205" y="83" font-size="10" fill="#334155" text-anchor="end" font-weight="bold">20m</text>
+            <line x1="207" y1="80" x2="430" y2="80" stroke="#cbd5e1" stroke-dasharray="3 3"/>
+            <text x="205" y="133" font-size="10" fill="#334155" text-anchor="end" font-weight="bold">40m</text>
+            <line x1="207" y1="130" x2="430" y2="130" stroke="#cbd5e1" stroke-dasharray="3 3"/>
+            <text x="210" y="214" font-size="10" fill="#334155" text-anchor="middle" font-weight="bold">바다의 깊이(m) ↓</text>
+
+            <text x="215" y="22" font-size="10" fill="#334155" font-weight="bold">0</text>
+            <text x="320" y="18" font-size="11" fill="#1e293b" text-anchor="middle" font-weight="bold">도달하는 빛의 양(%) →</text>
+            <text x="415" y="22" font-size="10" fill="#334155" font-weight="bold">100</text>
+
+            <path d="M 420 30 Q 280 50 210 80" fill="none" stroke="#dc2626" stroke-width="2.5"/>
+            <path d="M 420 30 Q 290 75 210 130" fill="none" stroke="#eab308" stroke-width="2.5"/>
+            <path d="M 420 30 Q 300 100 210 185" fill="none" stroke="#2563eb" stroke-width="2.5"/>
+
+            <rect x="295" y="138" width="128" height="55" rx="6" fill="white" stroke="#cbd5e1"/>
+            <line x1="303" y1="150" x2="323" y2="150" stroke="#dc2626" stroke-width="2.5"/>
+            <text x="328" y="154" font-size="10" fill="#334155">적색광(660nm)</text>
+            <line x1="303" y1="166" x2="323" y2="166" stroke="#eab308" stroke-width="2.5"/>
+            <text x="328" y="170" font-size="10" fill="#334155">황색광(600nm)</text>
+            <line x1="303" y1="182" x2="323" y2="182" stroke="#2563eb" stroke-width="2.5"/>
+            <text x="328" y="186" font-size="10" fill="#334155">청색광(470nm)</text>
+          </svg>
+        </div>
+        <ul class="list-disc pl-5 space-y-1 text-slate-700">
+          <li><strong>도달 깊이:</strong> 적색광(660nm)은 약 20m, 황색광(600nm)은 약 40m, 청색광(470nm)은 40m보다 깊은 곳까지 도달한다[cite: 26].</li>
+          <li><strong>해조류 분포:</strong> 녹조류(해캄)는 0~20m에 주로 분포하고, 갈조류는 0~40m, 홍조류(우뭇가사리)는 얕은 곳부터 40m보다 깊은 바다까지 폭넓게 분포한다[cite: 26].</li>
         </ul>`,
         choices: [
           '바다의 깊이에 따라 해조류의 분포가 달라지는 것은 비생물요소가 생물요소에 영향을 준 예이다.',
@@ -427,17 +495,62 @@
           '녹조류는 주로 파장이 긴 적색광을 광합성에 이용하며 얕은 바다에 분포한다.'
         ],
         answer: 2,
-        explanation: '교재 그래프(p.103 14번)를 보면 해수면 부근(얕은 바다)에는 적색광과 청색광이 모두 도달하므로 녹조류, 갈조류, 홍조류가 모두 분포하며, 깊은 바다에는 홍조류만 분포합니다.',
+        explanation: '교재 그래프(p.103 14번)를 보면 해수면 부근(얕은 바다)에는 적색광과 청색광이 모두 도달하므로 녹조류, 갈조류, 홍조류가 모두 분포하며, 깊은 바다에는 홍조류만 분포합니다[cite: 26].',
         wrongNotes: [
-          '① 빛의 파장(비생물요소)이 해조류의 서식 깊이(생물요소)에 영향을 준 사례입니다.',
-          '② 청색광(470nm)이 적색광(660nm)보다 파장이 짧아 깊은 곳까지 도달합니다.',
-          '④, ⑤ 녹조류는 주로 적색광, 홍조류는 주로 청색광을 이용합니다.'
+          '① 빛의 파장(비생물요소)이 해조류의 서식 깊이(생물요소)에 영향을 준 사례입니다[cite: 26].',
+          '② 청색광(470nm)이 적색광(660nm)보다 파장이 짧아 깊은 곳까지 도달합니다[cite: 26].',
+          '④, ⑤ 녹조류는 주로 적색광, 홍조류는 주로 청색광을 이용합니다[cite: 26].'
         ]
       },
       {
         id: 17, type: 'data', badge: '자료해석형',
-        question: '다음 표는 어떤 안정된 생태계에서 영양단계 A~C의 에너지양을 나타낸 것이다. A~C는 각각 생산자, 1차 소비자, 2차 소비자 중 하나이며, 태양으로부터 유입되는 빛에너지는 100,000이고 이 중 99,000은 흡수되지 않고 방출된다. 이에 대한 설명으로 옳은 것만을 <보기>에서 있는 대로 고른 것은?',
-        box: `<table class="w-full text-sm text-center border-collapse border border-slate-300 mb-3 bg-white">
+        question: '다음 그림과 표는 어떤 안정된 생태계에서 영양단계 A~C의 에너지 흐름과 에너지양(상댓값)을 나타낸 것이다. A~C는 각각 생산자, 1차 소비자, 2차 소비자 중 하나이며, 태양으로부터 유입되는 빛에너지는 100,000이고 이 중 99,000은 흡수되지 않고 방출된다[cite: 33]. 이에 대한 설명으로 옳은 것만을 <보기>에서 있는 대로 고른 것은?',
+        box: `
+        <div class="bg-white p-3 rounded-xl border border-slate-200 mb-3 flex justify-center">
+          <svg viewBox="0 0 480 185" class="w-full max-w-lg h-auto" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <marker id="arr-red" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+                <path d="M 0 1 L 10 5 L 0 9 z" fill="#e11d48"/>
+              </marker>
+            </defs>
+            <rect x="115" y="10" width="345" height="28" rx="4" fill="#e0f2fe" stroke="#0284c7"/>
+            <text x="145" y="29" font-size="12" fill="#0369a1" font-weight="bold">호흡</text>
+            <text x="235" y="29" font-size="12" fill="#0f172a" font-weight="bold" text-anchor="middle">800</text>
+            <text x="335" y="29" font-size="12" fill="#0f172a" font-weight="bold" text-anchor="middle">70</text>
+            <text x="430" y="29" font-size="12" fill="#0f172a" font-weight="bold" text-anchor="middle">15</text>
+
+            <rect x="115" y="145" width="345" height="28" rx="4" fill="#ffedd5" stroke="#ea580c"/>
+            <text x="155" y="164" font-size="11" fill="#9a3412" font-weight="bold" text-anchor="middle">사체, 배설물</text>
+            <text x="235" y="164" font-size="12" fill="#0f172a" font-weight="bold" text-anchor="middle">100</text>
+            <text x="335" y="164" font-size="12" fill="#0f172a" font-weight="bold" text-anchor="middle">10</text>
+            <text x="430" y="164" font-size="12" fill="#0f172a" font-weight="bold" text-anchor="middle">5</text>
+
+            <circle cx="42" cy="92" r="22" fill="#fef08a" stroke="#eab308" stroke-width="2"/>
+            <text x="42" y="96" font-size="12" fill="#854d0e" font-weight="bold" text-anchor="middle">태양</text>
+            <text x="42" y="130" font-size="11" fill="#334155" font-weight="bold" text-anchor="middle">100,000</text>
+            <line x1="65" y1="92" x2="128" y2="92" stroke="#e11d48" stroke-width="2" marker-end="url(#arr-red)"/>
+            <line x1="88" y1="92" x2="88" y2="148" stroke="#e11d48" stroke-width="1.8" marker-end="url(#arr-red)"/>
+            <text x="88" y="165" font-size="11" fill="#475569" font-weight="bold" text-anchor="middle">99,000</text>
+
+            <rect x="135" y="68" width="65" height="48" rx="4" fill="#ffffff" stroke="#334155" stroke-width="1.8"/>
+            <text x="167" y="97" font-size="15" fill="#0f172a" font-weight="bold" text-anchor="middle">B</text>
+            <line x1="200" y1="92" x2="253" y2="92" stroke="#e11d48" stroke-width="2" marker-end="url(#arr-red)"/>
+            <path d="M 215 92 Q 230 92 235 42" fill="none" stroke="#e11d48" stroke-width="1.8" marker-end="url(#arr-red)"/>
+            <path d="M 215 92 Q 230 92 235 140" fill="none" stroke="#e11d48" stroke-width="1.8" marker-end="url(#arr-red)"/>
+
+            <rect x="260" y="68" width="65" height="48" rx="4" fill="#ffffff" stroke="#334155" stroke-width="1.8"/>
+            <text x="292" y="97" font-size="15" fill="#0f172a" font-weight="bold" text-anchor="middle">A</text>
+            <line x1="325" y1="92" x2="373" y2="92" stroke="#e11d48" stroke-width="2" marker-end="url(#arr-red)"/>
+            <path d="M 335 92 Q 340 92 335 42" fill="none" stroke="#e11d48" stroke-width="1.8" marker-end="url(#arr-red)"/>
+            <path d="M 335 92 Q 340 92 335 140" fill="none" stroke="#e11d48" stroke-width="1.8" marker-end="url(#arr-red)"/>
+
+            <rect x="380" y="68" width="60" height="48" rx="4" fill="#ffffff" stroke="#334155" stroke-width="1.8"/>
+            <text x="410" y="97" font-size="15" fill="#0f172a" font-weight="bold" text-anchor="middle">C</text>
+            <path d="M 440 92 Q 445 92 432 42" fill="none" stroke="#e11d48" stroke-width="1.8" marker-end="url(#arr-red)"/>
+            <path d="M 440 92 Q 445 92 432 140" fill="none" stroke="#e11d48" stroke-width="1.8" marker-end="url(#arr-red)"/>
+          </svg>
+        </div>
+        <table class="w-full text-sm text-center border-collapse border border-slate-300 mb-3 bg-white">
           <thead class="bg-slate-100">
             <tr>
               <th class="border border-slate-300 p-1.5">구분</th>
@@ -469,89 +582,231 @@
         </table>
         <div class="font-semibold text-xs text-slate-500 mb-1">&lt;보기&gt;</div>
         <div class="space-y-1 text-slate-700">
-          <p>ㄱ. 먹이사슬에 따른 에너지 이동 방향은 B → A → C 이다.</p>
-          <p>ㄴ. 생산자(B)가 광합성으로 고정한 총 에너지양은 1,000이다.</p>
-          <p>ㄷ. A에서 C로 이동하는 에너지양(20)은 C에서 호흡과 사체·배설물로 나가는 에너지의 합과 같다.</p>
+          <p>ㄱ. 먹이사슬에 따른 에너지 이동 방향은 B → A → C 이다[cite: 28, 33].</p>
+          <p>ㄴ. 생산자(B)가 광합성으로 고정한 총 에너지양은 1,000이다[cite: 33].</p>
+          <p>ㄷ. A에서 C로 이동하는 에너지양(20)은 C에서 호흡과 사체·배설물로 나가는 에너지의 합과 같다[cite: 33].</p>
         </div>`,
         choices: ['ㄱ', 'ㄷ', 'ㄱ, ㄴ', 'ㄴ, ㄷ', 'ㄱ, ㄴ, ㄷ'],
         answer: 4,
-        explanation: '총 에너지양이 가장 많은 B(800+100+100=1,000)가 생산자, A(70+10+20=100)가 1차 소비자, C(15+5=20)가 2차 소비자입니다. 따라서 ㄱ, ㄴ, ㄷ 모두 옳습니다.',
+        explanation: '총 에너지양이 가장 많은 B(800+100+100=1,000)가 생산자, A(70+10+20=100)가 1차 소비자, C(15+5=20)가 2차 소비자입니다[cite: 33]. 따라서 ㄱ, ㄴ, ㄷ 모두 옳습니다.',
         wrongNotes: [
-          'ㄱ. 에너지양은 상위 영양단계로 갈수록 감소하므로 B(생산자, 1000) → A(1차 소비자, 100) → C(2차 소비자, 20) 순으로 이동합니다. (O)',
-          'ㄴ. 태양 에너지 100,000 중 99,000을 제외한 1,000이 생산자 B로 유입되었습니다. (O)',
-          'ㄷ. A에서 C로 전달된 에너지 20은 C의 호흡(15)과 사체·배설물(5)의 합(20)과 일치합니다. (O)'
+          'ㄱ. 에너지양은 상위 영양단계로 갈수록 감소하므로 B → A → C 순서로 이동합니다[cite: 28, 33]. (O)',
+          'ㄴ. 태양 에너지 100,000 중 99,000을 제외한 1,000이 생산자 B로 유입되었습니다[cite: 33]. (O)',
+          'ㄷ. A에서 C로 전달된 에너지 20은 C의 호흡(15)과 사체·배설물(5)의 합(20)과 일치합니다[cite: 33]. (O)'
         ]
       },
       {
         id: 18, type: 'data', badge: '자료해석형',
-        question: '다음은 두 생태계 (가)와 (나)의 먹이 관계를 나타낸 것이다. 이에 대한 설명으로 옳은 것만을 <보기>에서 있는 대로 고른 것은?',
-        box: `<div class="space-y-1 text-slate-700 mb-3 pb-3 border-b border-slate-200">
-          <p>• <strong>생태계 (가):</strong> 벼 → 메뚜기 → 개구리 → 매</p>
-          <p>• <strong>생태계 (나):</strong> [벼 → 메뚜기 → 개구리 → 매], [벼 → 메뚜기 → 개구리 → 뱀 → 매], [벼 → 토끼 → 매], [벼 → 토끼 → 뱀 → 매], [벼 → 쥐 → 매], [벼 → 쥐 → 뱀 → 매]</p>
+        question: '다음은 두 생태계 (가)와 (나)의 먹이 관계를 나타낸 것이다[cite: 34]. 이에 대한 설명으로 옳은 것만을 <보기>에서 있는 대로 고른 것은?',
+        box: `
+        <div class="bg-white p-3 rounded-xl border border-slate-200 mb-3 flex justify-center">
+          <svg viewBox="0 0 460 220" class="w-full max-w-lg h-auto" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <marker id="arr-blk" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+                <path d="M 0 1 L 10 5 L 0 9 z" fill="#475569"/>
+              </marker>
+            </defs>
+            <line x1="145" y1="15" x2="145" y2="205" stroke="#e2e8f0" stroke-width="1.5" stroke-dasharray="4 4"/>
+
+            <text x="72" y="210" font-size="12" fill="#0f172a" font-weight="bold" text-anchor="middle">생태계 (가)</text>
+            <rect x="42" y="15" width="60" height="26" rx="6" fill="#f8fafc" stroke="#475569" stroke-width="1.5"/>
+            <text x="72" y="32" font-size="12" fill="#1e293b" font-weight="bold" text-anchor="middle">매</text>
+            <rect x="42" y="62" width="60" height="26" rx="6" fill="#f8fafc" stroke="#475569" stroke-width="1.5"/>
+            <text x="72" y="79" font-size="12" fill="#1e293b" font-weight="bold" text-anchor="middle">개구리</text>
+            <rect x="42" y="109" width="60" height="26" rx="6" fill="#f8fafc" stroke="#475569" stroke-width="1.5"/>
+            <text x="72" y="126" font-size="12" fill="#1e293b" font-weight="bold" text-anchor="middle">메뚜기</text>
+            <rect x="42" y="156" width="60" height="26" rx="6" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5"/>
+            <text x="72" y="173" font-size="12" fill="#15803d" font-weight="bold" text-anchor="middle">벼</text>
+
+            <line x1="72" y1="156" x2="72" y2="138" stroke="#475569" stroke-width="1.5" marker-end="url(#arr-blk)"/>
+            <line x1="72" y1="109" x2="72" y2="91" stroke="#475569" stroke-width="1.5" marker-end="url(#arr-blk)"/>
+            <line x1="72" y1="62" x2="72" y2="44" stroke="#475569" stroke-width="1.5" marker-end="url(#arr-blk)"/>
+
+            <text x="310" y="210" font-size="12" fill="#0f172a" font-weight="bold" text-anchor="middle">생태계 (나)</text>
+            <rect x="280" y="15" width="60" height="26" rx="6" fill="#f8fafc" stroke="#475569" stroke-width="1.5"/>
+            <text x="310" y="32" font-size="12" fill="#1e293b" font-weight="bold" text-anchor="middle">매</text>
+            <rect x="180" y="65" width="60" height="26" rx="6" fill="#f8fafc" stroke="#475569" stroke-width="1.5"/>
+            <text x="210" y="82" font-size="12" fill="#1e293b" font-weight="bold" text-anchor="middle">개구리</text>
+            <rect x="315" y="55" width="60" height="26" rx="6" fill="#f8fafc" stroke="#475569" stroke-width="1.5"/>
+            <text x="345" y="72" font-size="12" fill="#1e293b" font-weight="bold" text-anchor="middle">뱀</text>
+            <rect x="180" y="115" width="60" height="26" rx="6" fill="#f8fafc" stroke="#475569" stroke-width="1.5"/>
+            <text x="210" y="132" font-size="12" fill="#1e293b" font-weight="bold" text-anchor="middle">메뚜기</text>
+            <rect x="280" y="110" width="60" height="26" rx="6" fill="#f8fafc" stroke="#475569" stroke-width="1.5"/>
+            <text x="310" y="127" font-size="12" fill="#1e293b" font-weight="bold" text-anchor="middle">토끼</text>
+            <rect x="380" y="105" width="60" height="26" rx="6" fill="#f8fafc" stroke="#475569" stroke-width="1.5"/>
+            <text x="410" y="122" font-size="12" fill="#1e293b" font-weight="bold" text-anchor="middle">쥐</text>
+            <rect x="280" y="156" width="60" height="26" rx="6" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5"/>
+            <text x="310" y="173" font-size="12" fill="#15803d" font-weight="bold" text-anchor="middle">벼</text>
+
+            <path d="M 280 165 Q 230 160 210 144" fill="none" stroke="#475569" stroke-width="1.4" marker-end="url(#arr-blk)"/>
+            <line x1="310" y1="156" x2="310" y2="139" stroke="#475569" stroke-width="1.4" marker-end="url(#arr-blk)"/>
+            <path d="M 340 165 Q 395 158 410 134" fill="none" stroke="#475569" stroke-width="1.4" marker-end="url(#arr-blk)"/>
+            
+            <line x1="210" y1="115" x2="210" y2="94" stroke="#475569" stroke-width="1.4" marker-end="url(#arr-blk)"/>
+            <path d="M 210 65 Q 225 32 277 28" fill="none" stroke="#475569" stroke-width="1.4" marker-end="url(#arr-blk)"/>
+            <line x1="240" y1="76" x2="312" y2="69" stroke="#475569" stroke-width="1.4" marker-end="url(#arr-blk)"/>
+
+            <path d="M 300 110 Q 285 70 298 44" fill="none" stroke="#475569" stroke-width="1.4" marker-end="url(#arr-blk)"/>
+            <line x1="322" y1="110" x2="338" y2="84" stroke="#475569" stroke-width="1.4" marker-end="url(#arr-blk)"/>
+
+            <line x1="395" y1="105" x2="362" y2="83" stroke="#475569" stroke-width="1.4" marker-end="url(#arr-blk)"/>
+            <path d="M 415 105 Q 410 50 343 28" fill="none" stroke="#475569" stroke-width="1.4" marker-end="url(#arr-blk)"/>
+            <line x1="335" y1="55" x2="320" y2="43" stroke="#475569" stroke-width="1.4" marker-end="url(#arr-blk)"/>
+          </svg>
+        </div>
+        <div class="space-y-1 text-slate-700 mb-3 pb-3 border-b border-slate-200">
+          <p>• <strong>생태계 (가):</strong> 벼 → 메뚜기 → 개구리 → 매[cite: 34]</p>
+          <p>• <strong>생태계 (나):</strong> [벼 → 메뚜기 → 개구리 → 매], [벼 → 메뚜기 → 개구리 → 뱀 → 매], [벼 → 토끼 → 매], [벼 → 토끼 → 뱀 → 매], [벼 → 쥐 → 매], [벼 → 쥐 → 뱀 → 매][cite: 34]</p>
         </div>
         <div class="font-semibold text-xs text-slate-500 mb-1">&lt;보기&gt;</div>
         <div class="space-y-1 text-slate-700">
-          <p>ㄱ. (가)와 (나)에서 메뚜기는 모두 1차 소비자이다.</p>
-          <p>ㄴ. (나)에서 매는 2차 소비자, 3차 소비자, 4차 소비자의 지위를 모두 갖는다.</p>
-          <p>ㄷ. 개구리가 사라질 경우 생태계평형이 더 쉽게 깨지는 것은 (나)보다 (가)이다.</p>
+          <p>ㄱ. (가)와 (나)에서 메뚜기는 모두 1차 소비자이다[cite: 34].</p>
+          <p>ㄴ. (나)에서 매는 2차 소비자, 3차 소비자, 4차 소비자의 지위를 모두 갖는다[cite: 34].</p>
+          <p>ㄷ. 개구리가 사라질 경우 생태계평형이 더 쉽게 깨지는 것은 (나)보다 (가)이다[cite: 29, 34].</p>
         </div>`,
         choices: ['ㄱ', 'ㄴ', 'ㄱ, ㄷ', 'ㄴ, ㄷ', 'ㄱ, ㄴ, ㄷ'],
         answer: 4,
-        explanation: 'ㄱ. 메뚜기는 생산자인 벼를 먹으므로 1차 소비자입니다. ㄴ. (나)에서 매는 토끼/쥐를 먹을 때 2차 소비자, 개구리나 뱀(벼→토끼→뱀→매)을 먹을 때 3차 소비자, 벼→메뚜기→개구리→뱀→매 경로에서는 4차 소비자입니다. ㄷ. 먹이 관계가 단순한 (가)가 평형이 훨씬 쉽게 깨집니다.',
+        explanation: 'ㄱ. 메뚜기는 생산자인 벼를 먹으므로 1차 소비자입니다[cite: 34]. ㄴ. (나)에서 매는 경로에 따라 2차, 3차, 4차 소비자의 지위를 모두 갖습니다[cite: 34]. ㄷ. 먹이 관계가 단순한 (가)가 평형이 훨씬 쉽게 깨집니다[cite: 29, 34].',
         wrongNotes: []
       },
       {
         id: 19, type: 'data', badge: '자료해석형',
-        question: '다음은 어떤 초원 생태계에서 1905년 사슴을 보호하기 위해 늑대 사냥을 허가한 이후 약 30년간의 변화를 기록한 자료이다. 이에 대한 해석으로 옳은 것만을 <보기>에서 있는 대로 고른 것은?',
-        box: `<ul class="list-disc pl-5 space-y-1 text-slate-700 mb-3 pb-3 border-b border-slate-200">
-          <li><strong>1905년~1924년:</strong> 늑대 사냥 허가로 늑대 개체수가 급감하자, 사슴의 개체수가 약 10만 마리까지 급증하였고 초원의 생산량은 크게 감소하였다.</li>
-          <li><strong>1925년~1935년:</strong> 늑대 개체수는 여전히 낮은 상태였으나, 사슴의 개체수가 급격히 감소하였다.</li>
+        question: '다음은 어떤 초원 생태계에서 1905년 사슴을 보호하기 위해 늑대 사냥을 허가한 이후 약 30년간의 변화를 기록한 자료이다[cite: 34]. 이에 대한 해석으로 옳은 것만을 <보기>에서 있는 대로 고른 것은?',
+        box: `
+        <div class="bg-white p-3 rounded-xl border border-slate-200 mb-3 flex justify-center">
+          <svg viewBox="0 0 440 210" class="w-full max-w-lg h-auto" xmlns="http://www.w3.org/2000/svg">
+            <line x1="55" y1="25" x2="310" y2="25" stroke="#f1f5f9" stroke-width="1"/>
+            <line x1="55" y1="55" x2="310" y2="55" stroke="#f1f5f9" stroke-width="1"/>
+            <line x1="55" y1="85" x2="310" y2="85" stroke="#f1f5f9" stroke-width="1"/>
+            <line x1="55" y1="115" x2="310" y2="115" stroke="#f1f5f9" stroke-width="1"/>
+            <line x1="55" y1="145" x2="310" y2="145" stroke="#f1f5f9" stroke-width="1"/>
+
+            <line x1="55" y1="15" x2="55" y2="175" stroke="#334155" stroke-width="1.5"/>
+            <line x1="55" y1="175" x2="320" y2="175" stroke="#334155" stroke-width="1.5"/>
+
+            <text x="48" y="29" font-size="10" fill="#475569" text-anchor="end">10</text>
+            <text x="48" y="59" font-size="10" fill="#475569" text-anchor="end">8</text>
+            <text x="48" y="89" font-size="10" fill="#475569" text-anchor="end">6</text>
+            <text x="48" y="119" font-size="10" fill="#475569" text-anchor="end">4</text>
+            <text x="48" y="149" font-size="10" fill="#475569" text-anchor="end">2</text>
+            <text x="18" y="85" font-size="10" fill="#1e293b" font-weight="bold" text-anchor="middle">개체수</text>
+            <text x="18" y="100" font-size="10" fill="#1e293b" font-weight="bold" text-anchor="middle">·생산량</text>
+
+            <text x="85" y="192" font-size="10" fill="#334155" text-anchor="middle">1905</text>
+            <text x="150" y="192" font-size="10" fill="#334155" text-anchor="middle">1915</text>
+            <text x="215" y="192" font-size="10" fill="#334155" text-anchor="middle">1925</text>
+            <text x="280" y="192" font-size="10" fill="#334155" text-anchor="middle">1935</text>
+            <text x="325" y="192" font-size="10" fill="#334155" font-weight="bold">연도(년)</text>
+
+            <line x1="85" y1="35" x2="85" y2="175" stroke="#64748b" stroke-width="1.2" stroke-dasharray="3 3"/>
+            <text x="88" y="32" font-size="10" fill="#0f172a" font-weight="bold">↓ 늑대 사냥 허가</text>
+
+            <path d="M 65 85 L 85 88 L 150 118 L 180 142 L 210 148 L 280 140" fill="none" stroke="#16a34a" stroke-width="2.5"/>
+            <path d="M 65 112 L 85 115 L 118 165 L 215 162 L 280 158" fill="none" stroke="#2563eb" stroke-width="2.5"/>
+            <path d="M 65 168 L 85 166 Q 150 160 185 80 L 208 22 L 220 95 Q 250 135 280 152" fill="none" stroke="#dc2626" stroke-width="2.5"/>
+
+            <line x1="208" y1="22" x2="295" y2="22" stroke="#94a3b8" stroke-width="1"/>
+            <text x="298" y="25" font-size="10" fill="#dc2626" font-weight="bold">사슴의 개체수(10⁴마리)</text>
+            <line x1="245" y1="144" x2="295" y2="85" stroke="#94a3b8" stroke-width="1"/>
+            <text x="298" y="88" font-size="10" fill="#16a34a" font-weight="bold">초원의 생산량(10⁴건조 t)</text>
+            <line x1="255" y1="160" x2="295" y2="135" stroke="#94a3b8" stroke-width="1"/>
+            <text x="298" y="138" font-size="10" fill="#2563eb" font-weight="bold">늑대의 개체수(10²마리)</text>
+          </svg>
+        </div>
+        <ul class="list-disc pl-5 space-y-1 text-slate-700 mb-3 pb-3 border-b border-slate-200">
+          <li><strong>1905년~1924년:</strong> 늑대 사냥 허가로 늑대 개체수가 급감하자, 사슴의 개체수가 약 10만 마리까지 급증하였고 초원의 생산량은 크게 감소하였다[cite: 34].</li>
+          <li><strong>1925년~1935년:</strong> 늑대 개체수는 여전히 낮은 상태였으나, 사슴의 개체수가 급격히 감소하였다[cite: 34].</li>
         </ul>
         <div class="font-semibold text-xs text-slate-500 mb-1">&lt;보기&gt;</div>
         <div class="space-y-1 text-slate-700">
-          <p>ㄱ. 이 생태계의 먹이 관계는 \'초원 → 사슴 → 늑대\' 순이다.</p>
-          <p>ㄴ. 1925년 이후 사슴의 개체수가 급감한 까닭은 늑대의 개체수가 다시 급증했기 때문이다.</p>
-          <p>ㄷ. 인간의 간섭(늑대 사냥 허가)은 초원의 생산량을 감소시키고 생태계평형을 깨뜨렸다.</p>
+          <p>ㄱ. 이 생태계의 먹이 관계는 '초원 → 사슴 → 늑대' 순이다[cite: 34].</p>
+          <p>ㄴ. 1925년 이후 사슴의 개체수가 급감한 까닭은 늑대의 개체수가 다시 급증했기 때문이다[cite: 34].</p>
+          <p>ㄷ. 인간의 간섭(늑대 사냥 허가)은 초원의 생산량을 감소시키고 생태계평형을 깨뜨렸다[cite: 34].</p>
         </div>`,
         choices: ['ㄱ', 'ㄴ', 'ㄱ, ㄷ', 'ㄴ, ㄷ', 'ㄱ, ㄴ, ㄷ'],
         answer: 2,
-        explanation: 'ㄱ. 초원(생산자) → 사슴(1차 소비자) → 늑대(2차 소비자) 순입니다. ㄷ. 늑대를 인위적으로 제거하자 사슴이 폭증하여 초원이 황폐화되었습니다.',
+        explanation: 'ㄱ. 초원 → 사슴 → 늑대 순입니다[cite: 34]. ㄷ. 늑대를 인위적으로 제거하자 사슴이 폭증하여 초원이 황폐화되었습니다[cite: 34].',
         wrongNotes: [
-          'ㄴ. 1925년 이후 사슴의 개체수가 감소한 까닭은 늑대가 증가해서가 아니라, 초원의 생산량이 감소하여 사슴의 먹이가 부족해졌기 때문입니다. (교재 p.111 07번 핵심 선지)'
+          'ㄴ. 1925년 이후 사슴의 개체수가 감소한 까닭은 늑대가 증가해서가 아니라, 초원의 생산량이 감소하여 사슴의 먹이가 부족해졌기 때문입니다[cite: 34]. (교재 p.111 07번 핵심 선지)'
         ]
       },
       {
         id: 20, type: 'data', badge: '자료해석형',
-        question: '다음은 눈신토끼와 스라소니의 약 10년 주기 개체수 변동 자료를 시간 구간(T1 → T2 → T3)에 따라 정리한 것이다. 이에 대한 설명으로 옳은 것만을 <보기>에서 있는 대로 고른 것은? (단, ㉠과 ㉡은 각각 눈신토끼와 스라소니 중 하나이다.)',
-        box: `<ul class="list-disc pl-5 space-y-1 text-slate-700 mb-3 pb-3 border-b border-slate-200">
-          <li><strong>전체 개체수 규모:</strong> 모든 시기에서 ㉠의 개체수(단위: ×1,000마리)가 ㉡의 개체수(단위: ×1,000마리)보다 훨씬 많다.</li>
-          <li><strong>T1 구간:</strong> ㉠의 개체수가 먼저 급증하여 최고점에 도달하고, 뒤이어 ㉡의 개체수가 증가한다.</li>
-          <li><strong>T2 구간:</strong> ㉡의 개체수가 최고점에 도달하는 동안 ㉠의 개체수는 급격히 감소한다.</li>
-          <li><strong>T3 구간:</strong> ㉠의 개체수가 최저점에 이르자 먹이가 부족해진 ㉡의 개체수도 감소한다.</li>
+        question: '다음은 눈신토끼와 스라소니의 약 10년 주기 개체수 변동 자료를 시간 구간(T1 → T2 → T3)에 따라 정리한 것이다[cite: 29, 32]. 이에 대한 설명으로 옳은 것만을 <보기>에서 있는 대로 고른 것은? (단, ㉠과 ㉡은 각각 눈신토끼와 스라소니 중 하나이다[cite: 29, 32].)',
+        box: `
+        <div class="bg-white p-3 rounded-xl border border-slate-200 mb-3 flex justify-center">
+          <svg viewBox="0 0 450 220" class="w-full max-w-lg h-auto" xmlns="http://www.w3.org/2000/svg">
+            <rect x="95" y="25" width="38" height="145" fill="#fef2f2"/>
+            <rect x="133" y="25" width="32" height="145" fill="#eff6ff"/>
+            <rect x="165" y="25" width="32" height="145" fill="#f8fafc"/>
+            <text x="114" y="38" font-size="10" fill="#dc2626" font-weight="bold" text-anchor="middle">T1</text>
+            <text x="149" y="38" font-size="10" fill="#2563eb" font-weight="bold" text-anchor="middle">T2</text>
+            <text x="181" y="38" font-size="10" fill="#475569" font-weight="bold" text-anchor="middle">T3</text>
+
+            <line x1="55" y1="45" x2="385" y2="45" stroke="#e2e8f0" stroke-width="1"/>
+            <line x1="55" y1="85" x2="385" y2="85" stroke="#e2e8f0" stroke-width="1"/>
+            <line x1="55" y1="125" x2="385" y2="125" stroke="#e2e8f0" stroke-width="1"/>
+
+            <line x1="55" y1="20" x2="55" y2="170" stroke="#334155" stroke-width="1.5"/>
+            <text x="48" y="48" font-size="10" fill="#dc2626" font-weight="bold" text-anchor="end">160</text>
+            <text x="48" y="88" font-size="10" fill="#dc2626" font-weight="bold" text-anchor="end">120</text>
+            <text x="48" y="128" font-size="10" fill="#dc2626" font-weight="bold" text-anchor="end">80</text>
+            <text x="48" y="168" font-size="10" fill="#dc2626" font-weight="bold" text-anchor="end">0</text>
+            <text x="30" y="15" font-size="10" fill="#dc2626" font-weight="bold">㉠ 개체수(×1,000마리)</text>
+
+            <line x1="385" y1="20" x2="385" y2="170" stroke="#334155" stroke-width="1.5"/>
+            <text x="392" y="68" font-size="10" fill="#2563eb" font-weight="bold">9</text>
+            <text x="392" y="108" font-size="10" fill="#2563eb" font-weight="bold">6</text>
+            <text x="392" y="148" font-size="10" fill="#2563eb" font-weight="bold">3</text>
+            <text x="392" y="168" font-size="10" fill="#2563eb" font-weight="bold">0</text>
+            <text x="335" y="15" font-size="10" fill="#2563eb" font-weight="bold">㉡ 개체수(×1,000마리)</text>
+
+            <line x1="55" y1="170" x2="385" y2="170" stroke="#334155" stroke-width="1.5"/>
+            <text x="70" y="186" font-size="10" fill="#334155" text-anchor="middle">1845</text>
+            <text x="135" y="186" font-size="10" fill="#334155" text-anchor="middle">1865</text>
+            <text x="215" y="186" font-size="10" fill="#334155" text-anchor="middle">1885</text>
+            <text x="295" y="186" font-size="10" fill="#334155" text-anchor="middle">1905</text>
+            <text x="360" y="186" font-size="10" fill="#334155" text-anchor="middle">1925(년)</text>
+
+            <path d="M 55 145 L 75 95 L 95 155 L 133 32 L 165 162 L 195 90 L 215 155 L 240 45 L 270 160 L 305 85 L 335 162 L 365 75 L 382 155" 
+                  fill="none" stroke="#dc2626" stroke-width="2.2"/>
+            <path d="M 55 155 L 85 120 L 108 164 L 152 78 L 185 165 L 208 115 L 228 162 L 256 72 L 288 165 L 320 112 L 348 165 L 378 105" 
+                  fill="none" stroke="#2563eb" stroke-width="2.2" stroke-dasharray="4 3"/>
+
+            <line x1="145" y1="208" x2="170" y2="208" stroke="#dc2626" stroke-width="2.5"/>
+            <text x="175" y="212" font-size="11" fill="#0f172a" font-weight="bold">㉠ (실선)</text>
+            <line x1="255" y1="208" x2="280" y2="208" stroke="#2563eb" stroke-width="2.5" stroke-dasharray="4 3"/>
+            <text x="285" y="212" font-size="11" fill="#0f172a" font-weight="bold">㉡ (점선)</text>
+          </svg>
+        </div>
+        <ul class="list-disc pl-5 space-y-1 text-slate-700 mb-3 pb-3 border-b border-slate-200">
+          <li><strong>전체 개체수 규모:</strong> 모든 시기에서 ㉠의 개체수(단위: ×1,000마리)가 ㉡의 개체수(단위: ×1,000마리)보다 훨씬 많다[cite: 29, 32].</li>
+          <li><strong>T1 구간:</strong> ㉠의 개체수가 먼저 급증하여 최고점에 도달하고, 뒤이어 ㉡의 개체수가 증가한다[cite: 29].</li>
+          <li><strong>T2 구간:</strong> ㉡의 개체수가 최고점에 도달하는 동안 ㉠의 개체수는 급격히 감소한다[cite: 29].</li>
+          <li><strong>T3 구간:</strong> ㉠의 개체수가 최저점에 이르자 먹이가 부족해진 ㉡의 개체수도 감소한다[cite: 29].</li>
         </ul>
         <div class="font-semibold text-xs text-slate-500 mb-1">&lt;보기&gt;</div>
         <div class="space-y-1 text-slate-700">
-          <p>ㄱ. ㉠은 피식자인 눈신토끼, ㉡은 포식자인 스라소니이다.</p>
-          <p>ㄴ. T2 구간에서 ㉠이 감소하는 원인은 포식자인 ㉡의 개체수가 증가했기 때문이다.</p>
-          <p>ㄷ. 포식과 피식 관계의 주기적 변동에서 개체수 증가의 최고점(정점)은 항상 피식자(㉠)가 포식자(㉡)보다 먼저 나타난다.</p>
+          <p>ㄱ. ㉠은 피식자인 눈신토끼, ㉡은 포식자인 스라소니이다[cite: 29, 32].</p>
+          <p>ㄴ. T2 구간에서 ㉠이 감소하는 원인은 포식자인 ㉡의 개체수가 증가했기 때문이다[cite: 29].</p>
+          <p>ㄷ. 포식과 피식 관계의 주기적 변동에서 개체수 증가의 최고점(정점)은 항상 피식자(㉠)가 포식자(㉡)보다 먼저 나타난다[cite: 29, 31].</p>
         </div>`,
         choices: ['ㄱ', 'ㄷ', 'ㄱ, ㄴ', 'ㄴ, ㄷ', 'ㄱ, ㄴ, ㄷ'],
         answer: 4,
-        explanation: '개체수가 많고 먼저 증가하는 ㉠이 피식자(눈신토끼), 뒤따라 증감하는 ㉡이 포식자(스라소니)입니다. ㄱ, ㄴ, ㄷ 모두 옳은 설명입니다.',
+        explanation: '개체수가 많고 먼저 증가하는 ㉠이 피식자(눈신토끼), 뒤따라 증감하는 ㉡이 포식자(스라소니)입니다[cite: 29, 32]. ㄱ, ㄴ, ㄷ 모두 옳은 설명입니다[cite: 29, 31, 32].',
         wrongNotes: [
-          'ㄱ. 하위 영양단계인 눈신토끼(㉠)가 스라소니(㉡)보다 개체수가 많고 먼저 변동합니다. (O)',
-          'ㄴ. 스라소니(㉡)의 개체수가 증가하면 눈신토끼(㉠)가 많이 잡아먹혀 감소합니다. (O)',
-          'ㄷ. 피식자가 먼저 증가한 뒤 먹이가 풍부해진 포식자가 증가하므로, 그래프의 최고점은 항상 피식자(눈신토끼)가 먼저 나타납니다. (O)'
+          'ㄱ. 하위 영양단계인 눈신토끼(㉠)가 스라소니(㉡)보다 개체수가 많고 먼저 변동합니다[cite: 29, 32]. (O)',
+          'ㄴ. 스라소니(㉡)의 개체수가 증가하면 눈신토끼(㉠)가 많이 잡아먹혀 감소합니다[cite: 29]. (O)',
+          'ㄷ. 피식자가 먼저 증가한 뒤 먹이가 풍부해진 포식자가 증가하므로, 그래프의 최고점은 항상 피식자가 먼저 나타납니다[cite: 29, 31]. (O)'
         ]
       }
     ];
 
-    let currentMode = 'exam'; // 'exam' | 'study'
+    let currentMode = 'exam';
     let currentFilter = 'all';
     let userAnswers = new Array(quizData.length).fill(null);
     let isSubmitted = false;
 
-    // 캔버스 필기 및 지우개 상태 변수
     let isDrawMode = false;
     let isEraser = false;
     let penColor = '#ef4444';
@@ -565,7 +820,6 @@
       initCanvasEvents();
     });
 
-    // 문서 높이에 맞춰 캔버스 크기를 조절하되 기존 그림을 보존하는 함수
     function syncCanvasSize() {
       if (!canvas) return;
       const docWidth = document.documentElement.clientWidth;
@@ -592,12 +846,10 @@
     function initCanvasEvents() {
       window.addEventListener('resize', syncCanvasSize);
 
-      // 터치 이벤트 (스마트폰/태블릿)
       canvas.addEventListener('touchstart', startDraw, { passive: false });
       canvas.addEventListener('touchmove', moveDraw, { passive: false });
       canvas.addEventListener('touchend', endDraw);
 
-      // 마우스 이벤트 (PC)
       canvas.addEventListener('mousedown', startDraw);
       canvas.addEventListener('mousemove', moveDraw);
       canvas.addEventListener('mouseup', endDraw);
@@ -687,11 +939,11 @@
 
       if (isEraser) {
         ctx.globalCompositeOperation = 'destination-out';
-        ctx.lineWidth = 28; // 지우개 두께
+        ctx.lineWidth = 28;
       } else {
         ctx.globalCompositeOperation = 'source-over';
         ctx.strokeStyle = penColor;
-        ctx.lineWidth = 3;  // 펜 두께
+        ctx.lineWidth = 3;
       }
     }
 
@@ -709,7 +961,6 @@
       ctx.globalCompositeOperation = 'source-over';
     }
 
-    // 퀴즈 렌더링 로직 (원본 100% 동일)
     function renderQuestions() {
       const container = document.getElementById('questions-container');
       container.innerHTML = '';
@@ -796,7 +1047,6 @@
       });
 
       updateProgress();
-      // 해설이 펼쳐져 문서 길이가 늘어났을 때 캔버스 크기도 함께 확장
       setTimeout(syncCanvasSize, 50);
     }
 
@@ -879,6 +1129,35 @@
       clearCanvas();
       renderQuestions();
       window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // 카카오톡 결과 제출(텍스트 클립보드 복사) 함수
+    function copyKakaoResult() {
+      let totalCorrect = 0, basicCorrect = 0, appliedCorrect = 0, dataCorrect = 0;
+      quizData.forEach((q, idx) => {
+        if (userAnswers[idx] === q.answer) {
+          totalCorrect++;
+          if (q.type === 'basic') basicCorrect++;
+          if (q.type === 'applied') appliedCorrect++;
+          if (q.type === 'data') dataCorrect++;
+        }
+      });
+      const totalScore = totalCorrect * 5;
+
+      const resultText = `[2022 개정 통합과학2 퀴즈 결과 제출]
+• 단원: 07. 생물과 환경 & 08. 생태계평형
+• 총점: ${totalScore}점 (${totalCorrect}/20문항 정답)
+--------------------------
+• 기본 개념형: ${basicCorrect}/10
+• 응용·함정형: ${appliedCorrect}/5
+• 자료해석형: ${dataCorrect}/5`;
+
+      navigator.clipboard.writeText(resultText).then(() => {
+        alert('시험 결과가 카카오톡 제출용으로 복사되었습니다! 카톡 채팅창에 붙여넣기(Ctrl+V) 하세요.');
+      }).catch(err => {
+        console.error('복사 실패:', err);
+        alert('복사에 실패했습니다. 브라우저 권한을 확인해주세요.');
+      });
     }
   </script>
 </body>
